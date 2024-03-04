@@ -17,4 +17,4 @@
 
 
 # Usage 
-*  Run `sudo docker-compose up`
+*  Run `utils/start.sh`
