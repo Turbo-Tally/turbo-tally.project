@@ -14,7 +14,5 @@
         sudo chmod +x /usr/local/bin/docker-compose
         ```
 
-
-
 # Usage 
 *  Run `utils/start.sh`
