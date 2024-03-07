@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Mock Client</title>
+        <script src="/socket-io.min.js"></script>
+    </head>
+    <body> 
+        <script>
+            const socket = io(":80/");
+            socket.on("connect", () => {
+                console.log("@ Socket.IO : Connected to server...")
+
+                socket.emit("join", {})
+            })
+        </script>
+    </body>
+</html>

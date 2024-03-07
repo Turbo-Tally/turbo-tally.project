@@ -1,36 +1,63 @@
+from flask import Flask, send_file, request
+from flask_socketio import SocketIO, send, emit, join_room, leave_room
+from time import sleep
+from threading import Thread
+import socket
+import os 
+import subprocess
 
-from flask import Flask
+from core.dbal import DBAL 
+from core.cache import Cache 
+
+Cache.init()
+DBAL.init()
+
+app = Flask(
+    __name__,
+    static_url_path='', 
+    static_folder='../static'
+)
+
+socketio = SocketIO(app, cors_allowed_origins='*')
+
+# HTTP REQUESTS
+def setup_rest():
+    @app.route("/ping")
+    def ping():
+        return "PONG" 
 
 
-class APIServer: 
-    def __init__(self): 
-        from api.controllers.HttpController import HttpController
-        from api.controllers.WsController import WsController 
-    
-        self.app = Flask(__name__)
+    @app.route("/mock-client")
+    def mock_client():
+        return send_file("../mock-client.html")
 
-        self.HttpController = HttpController
-        self.WsController = WsController
+    @app.route("/analyze")
+    def analyze(): 
+        from backend.core.analyzer import Analyzer
+        stream_ids = request.args.get("streams").split(',') or []
+        task_id = Analyzer.process_request(stream_ids)         
 
-        self.makeRoutes() 
 
-    def makeRoutes(self):
-        
-        # GET /ping
-        self.app.add_url_rule(
-            "/ping", 
-            view_func=self.HttpController.ping
-        )
+# WEBSOCKET REQUESTS 
+def setup_websockets():
 
-        # GET /analyze 
-        self.app.add_url_rule(
-            "/analyze", 
-            view_func=self.HttpController.analyze
-        )
+    @socketio.on("connect") 
+    def connect(auth): 
+        sid = request.sid
+        print(f"@ Client [{sid}] has connected.")
 
-    def start(self): 
-        print("@ Running on localhost:80")
-        self.app.run("0.0.0.0", 80)
+    @socketio.on("join") 
+    def join(data): 
+        pass 
 
-server = APIServer() 
-server.start() 
+
+
+if __name__ == "__main__": 
+    # setup API server
+    setup_websockets() 
+    setup_rest() 
+
+    # output information about where the server is running on
+    private_ip = subprocess.getoutput("hostname -I").strip()
+    print(f"@ Running `scans.backend` on [{private_ip}:80]...")
+    socketio.run(app, "0.0.0.0", 80) 

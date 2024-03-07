@@ -24,6 +24,7 @@ services:
     build: 
       context: ./backend 
       dockerfile: Dockerfile
+    tty: true
     user: root 
     restart: always
     ports: 
@@ -68,6 +69,8 @@ services:
       mongod
     volumes: 
       - database:/data/db
+    networks: 
+      - main
 
 volumes: 
   cache:
