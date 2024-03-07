@@ -6,11 +6,11 @@ import socket
 import os 
 import subprocess
 
-from core.dbal import DBAL 
+from core.dal import DAL 
 from core.cache import Cache 
 
 Cache.init()
-DBAL.init()
+DAL.init()
 
 app = Flask(
     __name__,
