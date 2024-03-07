@@ -33,9 +33,14 @@ def setup_rest():
 
     @app.route("/analyze")
     def analyze(): 
-        from backend.core.analyzer import Analyzer
+        from core.analyzer import Analyzer
         stream_ids = request.args.get("streams").split(',') or []
         task_id = Analyzer.process_request(stream_ids)         
+        return {
+            "status" : "task_dispatched", 
+            "task_id" : task_id, 
+            "stream_list" : stream_ids
+        }
 
 
 # WEBSOCKET REQUESTS 
