@@ -4,14 +4,15 @@ from random import randint
 class StreamRoom(Room):
     
     def background_runner(self):    
-        while True: 
-            random_no = randint(1, 100)
-            print(f"> {self.room_id} : {random_no}")
+        # while True: 
+        #     random_no = randint(1, 100)
+        #     print(f"> {self.room_id} : {random_no}")
 
-            data = {
-                "room_id" : self.room_id, 
-                "random_no" : random_no
-            }
+        #     data = {
+        #         "room_id" : self.room_id, 
+        #         "random_no" : random_no
+        #     }
 
-            self.socket_io.emit("new_message", data, to=self.room_id)
-            self.socket_io.sleep(1) 
+        #     self.socket_io.emit("new_message", data, to=self.room_id)
+        #     self.socket_io.sleep(1) 
+        pass

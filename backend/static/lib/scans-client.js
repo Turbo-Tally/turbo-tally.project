@@ -124,9 +124,6 @@
                 self.onRetrievedVideoInfos(data)
             })
 
-            window.onbeforeunload = function () {
-                socket.emit('disconnect', self.task_id);
-            }
         }
 
         getJoinList(results) {
@@ -139,17 +136,23 @@
 
    
         async onConnected(socket) {
-            
+            const self = this
+
             // send instruction to analyze streams
             const results = await this.analyze()
             console.log("> Connected to WebSockets server...")
+
+            // sync task id 
+            self.io.emit("gen_sync", {
+                "task_id" : self.taskId, 
+                "stream_ids" : self.streamIds
+            })
 
             // join relevant rooms
             const joinList = this.getJoinList(results);
             console.log("> Joining server-side rooms:", joinList)
             
             const joined = this.joined; 
-            const self = this
             let joinCount = 0
             
             const joinInterval = setInterval(() => {
@@ -170,7 +173,7 @@
                 `> Getting video informations [${self.streamIds.join(", ")}]...`
             ) 
             self.io.emit("get_video_infos", self.streamIds)
-
+            
         }
     }
 

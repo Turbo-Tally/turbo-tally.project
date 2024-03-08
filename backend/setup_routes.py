@@ -100,4 +100,20 @@ def setup_routes(app):
         def active_rooms(): 
             from scans.core.TaskManager import TaskManager
             rooms = list(TaskManager.active_rooms.keys())
-            return rooms
+            return rooms    
+
+        #
+        # GET /task-id-sids
+        # 
+        @app.route("/task-id-sids") 
+        def task_id_sids(): 
+            from scans.core.TaskManager import TaskManager
+            return TaskManager.sid_task_id
+
+        #
+        # GET /stream-refs
+        # 
+        @app.route("/stream-refs") 
+        def stream_refs(): 
+            from scans.core.TaskManager import TaskManager
+            return TaskManager.stream_refs

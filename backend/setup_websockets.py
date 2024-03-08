@@ -14,10 +14,29 @@ def setup_websockets(socket_io):
     @socket_io.on("connect") 
     def connect(): 
         # get socket id 
-        socket_id = request.sid 
+        sid = request.sid 
         
         # output to console status of new connection
-        print(f"> Received connection from socket_id [{socket_id}]")
+        print(f"> Received connection from socket_id [{sid}]")
+
+    @socket_io.on("gen_sync") 
+    def on_gen_syc(data): 
+        sid = request.sid 
+
+        task_id = data["task_id"]
+        stream_ids = data["stream_ids"]
+
+        # sync task id 
+        print("SID:", sid, "Task ID:", task_id)
+        TaskManager.sid_task_id[sid] = task_id
+
+        # sync stream ids 
+        print("Stream IDs : ", stream_ids)
+        for stream_id in stream_ids: 
+            if stream_id not in TaskManager.stream_refs:
+                TaskManager.stream_refs[stream_id] = {}
+            TaskManager.stream_refs[stream_id][task_id] = True
+
 
     @socket_io.on("join_room")
     def on_join(data): 
@@ -66,9 +85,29 @@ def setup_websockets(socket_io):
         emit("video_infos", video_infos)
 
     @socket_io.on("disconnect") 
-    def on_disconnect(data): 
-        del TaskManager.active_rooms["tasks." + data] 
-        del TaskManager.active_tasks[data]
+    def on_disconnect(): 
+        sid = request.sid
+
+        task_id = TaskManager.sid_task_id[sid]
+        stream_ids = TaskManager.active_tasks[task_id].streams
+
+        print("Disconnect Task ID :", task_id)
+        print("Disconnect Stream IDs :", stream_ids)
+
+        if "task." + task_id in TaskManager.active_rooms:
+            del TaskManager.active_rooms["task." + task_id]
+        
+        if task_id in TaskManager.active_tasks: 
+            del TaskManager.active_tasks[task_id]
+
+        if task_id in TaskManager.sid_task_id:
+            del TaskManager.sid_task_id[sid] 
+
+        for stream_id in stream_ids: 
+            del TaskManager.stream_refs[stream_id][task_id]
+        
+        print("> Client disconnected...")
+
 
 
 

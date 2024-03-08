@@ -9,6 +9,8 @@ class TaskManager:
     active_tasks = {}
     active_streams = {}
     active_rooms = {}
+    sid_task_id = {}
+    stream_refs = {} 
 
     def process(task_id, stream_ids): 
         """
