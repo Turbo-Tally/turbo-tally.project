@@ -68,6 +68,7 @@ def setup_routes(app):
             "status"  : "SUBMITTED", 
             "stream_ids" : stream_ids
         }
+
         
         return data
 

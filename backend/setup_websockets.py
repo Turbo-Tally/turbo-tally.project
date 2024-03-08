@@ -106,6 +106,16 @@ def setup_websockets(socket_io):
         for stream_id in stream_ids: 
             del TaskManager.stream_refs[stream_id][task_id]
         
+        # deallocate unnecessary stream ids 
+        to_delete = []
+        for stream_id in TaskManager.stream_refs: 
+            if len(TaskManager.stream_refs[stream_id].keys()) == 0: 
+                to_delete.append(stream_id)
+        
+        for stream_id in to_delete:
+            del TaskManager.stream_refs[stream_id]
+
+        
         print("> Client disconnected...")
 
 
