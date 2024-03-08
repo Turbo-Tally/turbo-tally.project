@@ -1,11 +1,7 @@
+from bs4 import BeautifulSoup
+import requests
 
-"""
-    Extracts the following small set information about a video_id: 
-    1) Video/Stream Title 
-    2) Channel
-""" 
-
-class VideoScraper: 
+class VideoInfo: 
     def __init__(self, video_id): 
         self.video_id = video_id 
         self.title = None 
@@ -13,9 +9,6 @@ class VideoScraper:
         self.extract_data() 
 
     def extract_data(self):  
-        from bs4 import BeautifulSoup
-        import requests
-        
         html = \
             requests\
                 .get(f'https://www.youtube.com/watch?v={self.video_id}')\
@@ -29,10 +22,6 @@ class VideoScraper:
         # extract channel
         channel = soup.find("link", { 'itemprop': 'name'})["content"]
 
-        self.title = title 
-        self.channel = channel
+        self.title = title or "<unknown>"
+        self.channel = channel or "<unknown>"
 
-if __name__ == "__main__":
-    scraper = VideoScraper("wLZe70e_aPo") 
-    print(scraper.__dict__)
-     
