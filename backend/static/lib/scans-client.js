@@ -95,6 +95,7 @@
 
         setup() {
             let self = this
+            let joinCount = 0
            
             this.io.on("connect", (socket) => {
                 (async () => {
@@ -107,8 +108,17 @@
             })
 
             this.io.on("joined_room", (data) => {
-                console.log(`> Joined room [${data}]`)
+                console.log(
+                    `> Joined room (${joinCount + 1}/${self.noOfRooms}) ` +
+                    `[${data}]`
+                )
                 self.joined[data] = true;
+                joinCount += 1
+            })
+
+            this.io.on("video_infos", (data) => {
+                console.log(`> Retrieved video infos:`, data)
+                self.onRetrievedVideoInfos(data)
             })
         }
 
@@ -139,14 +149,21 @@
                 for(let joinItem of joinList) {
                     if(!(joinItem in joined)) {
                         console.log(
-                            `> Joining room ` +
-                            `(${joinCount + 1}/${self.noOfRooms})` +
+                            `> Joining room ` + 
+                            `(${joinCount + 1}/${self.noOfRooms}) ` +
                             `[${joinItem}]`)
                         self.io.emit("join_room", joinItem) 
                         joinCount += 1
                     }
                 }
             }, 3000)
+
+            // get information of videos
+            console.log(
+                `> Getting video informations [${self.streamIds.join(", ")}]...`
+            ) 
+            self.io.emit("get_video_infos", self.streamIds)
+
         }
     }
 

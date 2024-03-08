@@ -16,5 +16,11 @@
             }
         ); 
 
+    scansClient.onRetrievedVideoInfos = (infos) => {
+        /**
+         * Process retrieved video information.
+         */
+    }
+
     window.scansClient = scansClient;
 })() 

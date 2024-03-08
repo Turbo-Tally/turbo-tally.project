@@ -3,6 +3,7 @@
 # 
 from flask import request
 from flask_socketio import join_room, send, emit
+from scans.data.VideoInfo import VideoInfo
 
 def setup_websockets(socket_io): 
 
@@ -21,12 +22,34 @@ def setup_websockets(socket_io):
         
         print(f"> Received signal for [{sid}] to join room {room_id}")
         
+        # join room 
         join_room(room_id)
         emit("joined_room", room_id)
 
+        # determine room type 
         room_type = room_id.split(".")[0] 
-        print("Room Type :", room_type)
+       
+    @socket_io.on("get_video_infos")
+    def on_get_video_infos(data): 
+        video_ids = data 
+        video_infos = {}
+        sid = request.sid
 
+        print(
+            f"> Received signal for [{sid}] to " + 
+            f"get video information {video_ids}"
+        )
+
+        for video_id in video_ids: 
+            video_info = VideoInfo(video_id) 
+            video_infos[video_id] = {
+                "stream_id" : video_id,
+                "title" : video_info.title, 
+                "channel" : video_info.channel 
+            }
         
+        emit("video_infos", video_infos)
+
+         
         
 
