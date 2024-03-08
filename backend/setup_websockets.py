@@ -5,6 +5,10 @@ from flask import request
 from flask_socketio import join_room, send, emit
 from scans.data.VideoInfo import VideoInfo
 
+from scans.core.TaskManager import TaskManager
+from scans.rooms.StreamRoom import StreamRoom 
+from scans.rooms.TaskRoom import TaskRoom
+
 def setup_websockets(socket_io): 
 
     @socket_io.on("connect") 
@@ -28,6 +32,17 @@ def setup_websockets(socket_io):
 
         # determine room type 
         room_type = room_id.split(".")[0] 
+
+        # create room based on room type 
+        if room_id not in TaskManager.active_rooms:
+            room = None 
+            
+            if room_type == "stream": 
+                room = StreamRoom(room_id, socket_io).run()
+            elif room_type == "task": 
+                room = TaskRoom(room_id, socket_io).run()
+
+            TaskManager.active_rooms[room_id] = room
        
     @socket_io.on("get_video_infos")
     def on_get_video_infos(data): 
@@ -50,6 +65,10 @@ def setup_websockets(socket_io):
         
         emit("video_infos", video_infos)
 
-         
-        
+    @socket_io.on("disconnect") 
+    def on_disconnect(data): 
+        del TaskManager.active_rooms["tasks." + data] 
+        del TaskManager.active_tasks[data]
+
+
 

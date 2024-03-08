@@ -25,6 +25,7 @@
             this.streamIds = streamIds
             this.connectSelf = connectSelf 
             this.joined = {}
+            this.taskId = null
             this.noOfRooms = this.streamIds.length + 1
 
             this.io = this.createWsConnection()
@@ -90,6 +91,8 @@
 
             console.log("> Received response from /analyze : ", result)
 
+            this.taskId = result["task_id"]
+
             return result
         }
 
@@ -120,6 +123,10 @@
                 console.log(`> Retrieved video infos:`, data)
                 self.onRetrievedVideoInfos(data)
             })
+
+            window.onbeforeunload = function () {
+                socket.emit('disconnect', self.task_id);
+            }
         }
 
         getJoinList(results) {

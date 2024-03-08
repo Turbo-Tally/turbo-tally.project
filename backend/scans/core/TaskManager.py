@@ -1,11 +1,14 @@
 from scans.data.DataWrapper import DataWrapper
+
 from scans.core.Task import Task
+from scans.core.Stream import Stream
+
 from time import time
 
 class TaskManager:
     active_tasks = {}
     active_streams = {}
-    active_rooms = {} 
+    active_rooms = {}
 
     def process(task_id, stream_ids): 
         """
@@ -34,5 +37,8 @@ class TaskManager:
         # register task 
         TaskManager.active_tasks[task_id] = Task.create(task_id) 
         TaskManager.active_tasks[task_id].streams = stream_ids
+        
+        # register streams 
+        for stream_id in stream_ids: 
+            TaskManager.active_streams[stream_id] = Stream.create(stream_id)
 
-    

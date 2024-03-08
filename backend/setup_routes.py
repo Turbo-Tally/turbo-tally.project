@@ -76,7 +76,7 @@ def setup_routes(app):
     # 
     if os.getenv("ENV_MODE") == "dev": 
         #
-        # GET /tasks 
+        # GET /active-tasks 
         # 
         @app.route("/active-tasks")
         def active_tasks(): 
@@ -92,3 +92,12 @@ def setup_routes(app):
                     "status" : task["status"]
                 } 
             return tasks
+
+        #
+        # GET /active-rooms
+        # 
+        @app.route("/active-rooms")
+        def active_rooms(): 
+            from scans.core.TaskManager import TaskManager
+            rooms = list(TaskManager.active_rooms.keys())
+            return rooms
