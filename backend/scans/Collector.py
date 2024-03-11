@@ -11,6 +11,8 @@ class Collector:
         del task_manager.threads["collectors"][self.stream_id] 
 
     def runner(self, socket_io): 
-        while True: 
-            print(f"> collector.runner : Stream [{self.stream_id}]")
-            socket_io.sleep(1) 
+        # while True: 
+        #     print(f"> collector.runner : Stream [{self.stream_id}]")
+        #     socket_io.sleep(1) 
+
+        pass

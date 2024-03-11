@@ -11,6 +11,8 @@ class Analyzer:
         del task_manager.threads["analyzers"][self.stream_id] 
 
     def runner(self, socket_io): 
-        while True: 
-            print(f"> analyzer.runner : Stream [{self.stream_id}]")
-            socket_io.sleep(1) 
+        # while True: 
+        #     print(f"> analyzer.runner : Stream [{self.stream_id}]")
+        #     socket_io.sleep(1) 
+
+        pass

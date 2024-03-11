@@ -29,10 +29,10 @@ class Task:
         del task_manager.threads["tasks"][self.task_id] 
 
     def runner(self, socket_io): 
-        while True: 
-            print(
-                f"> task.runner : Task [{self.task_id}] " + 
-                f"-> ({ randint(1, 100)})"
-            )
-            socket_io.sleep(1) 
+        # while True: 
+        #     print(
+        #         f"> task.runner : Task [{self.task_id}] " + 
+        #         f"-> ({ randint(1, 100)})"
+        #     )
+        #     socket_io.sleep(1) 
         pass
