@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en"> 
+    <head>
+        <meta charset="utf-8" /> 
+        <title>Test Client</title>
+    </head>
+    <body> 
+        <div class="page">
+            View console.log() for more runtime information...
+        </div>
+        <script src="/lib/socket-io.min.js"></script>
+        <script src="/lib/scans-client.js"></script>
+        <script>
+            (async () => {
+                const client = new SCANSClient()
+
+                await client.new([
+                    "YTfq9PweGec",
+                    "Dc6zkjIFCig", 
+                    "1BlFz7HLxDU"
+                ])
+
+                // await client.load("81e95133-c156-48b2-af7c-b3bea7b2189c")
+
+                window.client = client 
+            })()
+        
+
+        </script>
+    </body>
+</html>

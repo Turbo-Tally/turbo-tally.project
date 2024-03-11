@@ -9,7 +9,7 @@ load_dotenv(".env")
 app = Flask(
     __name__, 
     static_url_path="",
-    static_folder="./static",
+    static_folder=os.path.abspath("./static"),
     template_folder=os.path.abspath("./templates")
 )
 

@@ -1,7 +1,9 @@
 from flask import render_template, request
 from datetime import date
+
 from scans.DAL import dal
 from scans.TaskManager import task_manager
+from scans.VideoInfo import VideoInfo
 
 def make_rest_api(app): 
     
@@ -23,6 +25,14 @@ def make_rest_api(app):
         del rates["_id"]
         return rates
 
+
+    #
+    # GET /mock-client
+    # 
+    @app.route("/test-client")
+    def test_client(): 
+        return render_template("test-client.html")
+ 
     #
     # GET /task-manager/state 
     # 
@@ -37,17 +47,63 @@ def make_rest_api(app):
     def ping():
         return "PONG"
 
-
     #
     # GET /tasks/new 
     # 
     @app.route("/tasks/new") 
     def tasks_new(): 
         stream_ids = request.args.get("stream_ids").split(",")
-        task_id, video_infos = task_manager.preprocess(stream_ids) 
+        task_id = task_manager.preprocess(stream_ids) 
         return {
             "task_id" : task_id, 
             "stream_ids" : stream_ids, 
-            "streams" : video_infos,
             "status" : "PREPROCESSING"
         }
+
+    #
+    # GET /tasks/{task_id}/info 
+    # 
+    @app.route("/tasks/<task_id>/info")
+    def task_info(task_id):
+        task = dal.models["tasks"].read(task_id) 
+        del task["_id"]
+        return task 
+
+    #
+    # GET /streams/{stream_id}/info 
+    # 
+    @app.route("/streams/<stream_id>/info")
+    def stream_info(stream_id): 
+        # get video info 
+        info = VideoInfo(stream_id)
+
+        # create initial record for the video 
+        if not dal.models["streams"].exists(stream_id):
+            dal.models["streams"].create({
+                "stream_id" : info.video_id, 
+                "channel_id" : info.channel_id, 
+                "fetch_state" : {
+                    "lf_video_time" : "00:00", 
+                    "lf_video_id" : None, 
+                    "total_messages_fetched" : 0
+                }, 
+                "reports" : {
+
+                }, 
+                "created_at" : time(), 
+                "updated_at" : None
+            })
+
+        # retrieve stream from database 
+        stream = dal.models["streams"].read(stream_id) 
+
+        # attach details to stream 
+        stream["_meta"] = {
+            "title" : info.title, 
+            "channel" : info.channel, 
+        }
+
+        # remove object id from stream details
+        del stream["_id"] 
+
+        return stream

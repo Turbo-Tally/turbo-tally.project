@@ -9,7 +9,7 @@ services:
     user: root 
     restart: always 
     ports: 
-      - 30000:80 
+      - "30000:80" 
     privileged: true 
     env_file:
       - .env 
@@ -28,7 +28,7 @@ services:
     user: root 
     restart: always
     ports: 
-      - 30001:80
+      - "30001:80"
     privileged: true 
     env_file: 
       - .env 
@@ -44,7 +44,7 @@ services:
     user: root
     restart: always
     ports: 
-      - 30002:6379
+      - "30002:6379"
     privileged: true
     env_file: 
       - .env
@@ -64,7 +64,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=password
     ports:
-      - 30003:27017
+      - "30003:27017"
     command: 
       mongod
     volumes: 

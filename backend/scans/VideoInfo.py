@@ -15,26 +15,6 @@ class VideoInfo:
    
         self.extract_data()  
 
-        if not video_in_db:
-            dal.models["streams"].create({
-                "stream_id" : self.video_id, 
-                "channel_id" : self.channel_id, 
-                "meta" : {
-                    "title" : self.title, 
-                    "channel" : self.channel 
-                },
-                "fetch_state" : {
-                    "lf_video_time" : "00:00", 
-                    "lf_video_id" : None, 
-                    "total_messages_fetched" : 0
-                }, 
-                "reports" : {
-
-                }, 
-                "created_at" : time(), 
-                "updated_at" : None
-            })
-
     def extract_data(self):  
         html = \
             requests\
