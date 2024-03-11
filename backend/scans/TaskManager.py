@@ -14,33 +14,33 @@ class TaskManager:
 
         self.state = {
             "clients" : {
-                
+                # mapping of client ids (SIDs) to task_id and join_time
             }, 
 
             "streams" : {
-
+                # mapping of streams to client ids (SIDs)
             }, 
 
             "tasks" : {
-
+                # mapping of tasks to client ids (SIDs)
             }
         } 
 
         self.threads = {
             "tasks" : {
-
+                # task threads
             },
 
             "streams" : {
-
+                # stream threads
             }, 
             
             "collector" : {
-
+                # collector threads
             }, 
 
             "analyzer" : {
-                
+                # analyzer threads
             }
         }
 
