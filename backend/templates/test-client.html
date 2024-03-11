@@ -12,15 +12,15 @@
         <script src="/lib/scans-client.js"></script>
         <script>
             (async () => {
-                const client = new SCANSClient()
+                const client = new SCANSClient(io)
 
-                await client.new([
-                    "YTfq9PweGec",
-                    "Dc6zkjIFCig", 
-                    "1BlFz7HLxDU"
-                ])
+                // await client.new([
+                //     "YTfq9PweGec",
+                //     "Dc6zkjIFCig", 
+                //     "1BlFz7HLxDU"
+                // ])
 
-                // await client.load("81e95133-c156-48b2-af7c-b3bea7b2189c")
+                await client.load("f0f5b96c-9e73-43d0-8c17-849eeee14fdd")
 
                 window.client = client 
             })()

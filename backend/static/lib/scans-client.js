@@ -5,14 +5,16 @@
 (() => {
     class SCANSClient 
     {
-        constructor() {
+        constructor(io) {
             this.taskId = null
             this.streamIds = [] 
             this.streamMetas = {} 
+            this.io = io
+            this.socket = null
         }
 
         async load(taskId) {
-            console.log("@ Loading task id [" + taskId + "]")
+            console.log("@ Loading task id `" + taskId + "`")
 
             // save to task id 
             this.taskId = taskId 
@@ -30,6 +32,9 @@
 
             // load stream metas
             await this.loadStreamMetas()
+
+            // connect 
+            await this.connect()
         }
 
         async new(streamIds) {
@@ -47,10 +52,14 @@
                 await response.json()
 
             // save task id 
+            console.log("@ Determined `task_id` : " + taskInfo.task_id)
             this.taskId = taskInfo.task_id 
 
             // load stream metas
             await this.loadStreamMetas()
+
+            // connect 
+            await this.connect()
         }
 
         async loadStreamMetas() {
@@ -64,6 +73,29 @@
                     this.streamMetas[streamId]
                 )
             }
+        }
+
+        async connect() {
+            console.log("@ Connecting to WebSocket server...")
+            const socket = this.io("/", {
+                query: {
+                    "task_id" : this.taskId
+                }
+            });
+
+            this.socket = socket; 
+         
+            socket.on("connect", () => {
+                console.log("\tConnected to WebSocket server.")
+            })
+
+            socket.on("disconnect", () => {
+                console.log("@ Disconnected from WebSocket server.")
+            })
+
+            socket.on("reconnect_attempt", () => {
+                console.log("\tReconnecting to WebSocket server...")
+            })
         }
     }
 

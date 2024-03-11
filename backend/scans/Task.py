@@ -18,3 +18,8 @@ class Task:
         dal.models["tasks"].update(self.task_id, {
             "status" : status
         }) 
+
+    def clear(self): 
+        thread = dal.threads["tasks"][self.task_id] 
+        thread.join() 
+        del dal.threads["tasks"][self.task_id] 
