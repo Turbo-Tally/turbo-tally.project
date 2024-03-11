@@ -11,6 +11,7 @@
 3. `author { id, name, image }`
 4. `money { amount, currency, currency_symbol }`
 5. `header_secondary_text` 
+6. `stream_id`
 
 ## Paid Message 
 1. `message_id` 
@@ -18,9 +19,18 @@
 3. `author { id, name, image }` 
 4. `money { amount, currency, currency_symbol }` 
 5. `header_secondary_text` 
+6. `stream_id`
 
 ## Paid Item 
 1. `message_id` 
 2. `time_text`
 3. `author { id, name, image }` 
 4. `money { amount, currency }`
+
+## Normal Message
+1. `message_id`
+2. `time_text`
+3. `author { id, name, image }`
+4. `money { amount, currency, currency_symbol }`
+5. `message_text` 
+6. `stream_id`
