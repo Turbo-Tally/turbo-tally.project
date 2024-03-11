@@ -4,6 +4,8 @@ from time import time
 
 from scans.TaskManager import task_manager
 from scans.DAL import dal
+from scans.Task import Task
+from scans.Stream import Stream
 
 def make_ws_api(socket_io):
 
@@ -11,6 +13,7 @@ def make_ws_api(socket_io):
     def on_connect(): 
         sid = request.sid
         task_id = request.args.get("task_id")
+        task = dal.models["tasks"].read(task_id)
         timestamp = time()
 
         print(f"> Client connected    -> SID: [{sid}].")
@@ -27,12 +30,38 @@ def make_ws_api(socket_io):
         task_manager.state["tasks"][task_id][sid] = timestamp
         
         # back reference streams to client id 
-        task = dal.models["tasks"].read(task_id)
         stream_ids = task["stream_ids"]
         for stream_id in stream_ids:
             if stream_id not in task_manager.state["streams"]:
                 task_manager.state["streams"][stream_id] = {} 
             task_manager.state["streams"][stream_id][sid] = timestamp 
+
+        ########################################
+        # Create background threads and rooms. #
+        ######################################## 
+
+        # create task thread (if needed)
+        if task_id not in task_manager.threads["tasks"]:
+            task = Task(task_id)
+            thread = \
+                socket_io.start_background_task(task.runner, socket_io)
+            task_manager.threads["tasks"][task_id] = thread
+        
+        # join task room
+        task_room_id = "task." + task_id
+        join_room(task_room_id)
+
+        # create stream thread (if needed) 
+        for stream_id in stream_ids: 
+            stream = Stream(stream_id)
+            
+            if stream_id not in task_manager.threads["streams"]: 
+                thread = \
+                    socket_io.start_background_task(stream.runner, socket_io)
+                task_manager.threads["streams"][stream_id] = thread 
+
+            stream_room_id = "stream." + stream_id 
+            join_room(stream_room_id) 
 
 
     @socket_io.on("disconnect")

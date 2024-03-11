@@ -1,6 +1,9 @@
 from datetime import date 
 
 from .DAL import dal
+from scans.TaskManager import task_manager
+from random import randint
+
 
 class Task: 
     def __init__(self, task_id): 
@@ -20,6 +23,16 @@ class Task:
         }) 
 
     def clear(self): 
-        thread = dal.threads["tasks"][self.task_id] 
+        print(f"@ Clearing task ({self.task_id})...")
+        thread = task_manager.threads["tasks"][self.task_id] 
         thread.join() 
-        del dal.threads["tasks"][self.task_id] 
+        del task_manager.threads["tasks"][self.task_id] 
+
+    def runner(self, socket_io): 
+        while True: 
+            print(
+                f"> task.runner : Task [{self.task_id}] " + 
+                f"-> ({ randint(1, 100)})"
+            )
+            socket_io.sleep(1) 
+        pass

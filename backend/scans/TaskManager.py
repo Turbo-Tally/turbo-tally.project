@@ -4,8 +4,6 @@ from datetime import date
 
 from .VideoInfo import VideoInfo
 from .DAL import dal
-from .Task import Task
-from .Stream import Stream
 
 class TaskManager: 
     def __init__(self):
@@ -35,16 +33,18 @@ class TaskManager:
                 # stream threads
             }, 
             
-            "collector" : {
+            "collectors" : {
                 # collector threads
             }, 
 
-            "analyzer" : {
+            "analyzers" : {
                 # analyzer threads
             }
         }
 
     def preprocess(self, stream_ids): 
+        from .Task import Task
+
         task_id = str(uuid.uuid4())
         
         # create initial record for the task
@@ -60,6 +60,9 @@ class TaskManager:
         return task_id
 
     def dispose(self): 
+        from .Stream import Stream
+        from .Task import Task
+
         # clear streams state 
         def on_clear_stream(stream_id):
             Stream(stream_id).clear()

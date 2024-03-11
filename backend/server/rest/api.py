@@ -39,6 +39,18 @@ def make_rest_api(app):
     @app.route("/task-manager/state") 
     def task_manager_state(): 
         return task_manager.state
+
+    #
+    # GET /task-manager/threads 
+    # 
+    @app.route("/task-manager/threads") 
+    def task_manager_threads(): 
+        return {
+            "tasks" : list(task_manager.threads["tasks"].keys()),
+            "streams" : list(task_manager.threads["streams"].keys()), 
+            "analyzers" : list(task_manager.threads["analyzers"].keys()),
+            "collectors" : list(task_manager.threads["collectors"].keys())
+        }
     
     #
     # GET /ping
