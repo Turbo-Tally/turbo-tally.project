@@ -59,9 +59,8 @@ class Collector:
             socket_io.start_background_task(self.flusher, socket_io)
 
         # create relayer thread 
-        # self.relayer_thread = \
-        #     Thread(target=self.relayer, args=(socket_io,)) 
-        # self.relayer_thread.start()
+        self.relayer_thread = \
+            socket_io.start_background_task(self.relayer, socket_io)
 
         for item in download: 
             data = {}
@@ -147,7 +146,8 @@ class Collector:
             socket_io.sleep(3)  
 
     def relayer(self, socket_io): 
-        pass
+        while not self.start_sending and time() - self.last_message_timestamp > 5: 
+            self.start_sending = True
 
     def get_flush_data(self, socket_io): 
         pass
