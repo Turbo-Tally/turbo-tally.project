@@ -7,8 +7,11 @@
     {
         constructor(io) {
             this.taskId = null
+            
             this.streamIds = [] 
             this.streamMetas = {} 
+            this.streamReports = {} 
+
             this.io = io
             this.socket = null
         }
@@ -28,10 +31,13 @@
 
             // save stream ids 
             console.log("@ Saving Stream IDs: ", taskInfo.stream_ids)
-            this.streamIds = taskInfo.stream_ids 
+            this.streamIds = taskInfo.stream_ids
+            
+            // run task hook 
+            await this.onTaskPreloaded(taskInfo)
 
             // load stream metas
-            await this.loadStreamMetas()
+            await this.preloadStreams()
 
             // connect 
             await this.connect()
@@ -55,23 +61,39 @@
             console.log("@ Determined `task_id` : " + taskInfo.task_id)
             this.taskId = taskInfo.task_id 
 
+            // run task hook
+            await this.onTaskPreloaded(taskInfo)
+
             // load stream metas
-            await this.loadStreamMetas()
+            await this.preloadStreams()
 
             // connect 
             await this.connect()
         }
 
-        async loadStreamMetas() {
-            console.log("@ Loading Stream Metas...")
+        async preloadStreams() {
+            console.log("@ Preloading Stream Metas...")
+            
+            const length = this.streamIds.length; 
+             
+            let index = 1; 
             for(let streamId of this.streamIds) {
-                console.log("@ Loading metadata of Stream ID :", streamId)
-                this.streamMetas[streamId] = 
+                console.log("@ Preloading Stream ID :", streamId)
+
+                const streamInfo = 
                     await (await fetch(`/streams/${streamId}/info`)).json()
-                console.log(
-                    "\tStream ID [" + streamId + "] :",
-                    this.streamMetas[streamId]
-                )
+                
+                // get stream meta 
+                this.streamMetas[streamId] = streamInfo._meta 
+                
+                // get stream reports 
+                this.streamReports[streamId] = streamInfo.report
+                console.log("\tStream ID [" + streamId + "] :", streamInfo)
+
+                // run stream hook
+                await this.onStreamPreloaded(streamInfo, index, length)
+
+                index += 1
             }
         }
 
@@ -97,6 +119,25 @@
                 console.log("\tReconnecting to WebSocket server...")
             })
         }
+
+        /** 
+         * Event Hooks 
+         */
+
+        /**
+         * Run hook when task information has been loaded.
+         */
+        async onTaskPreloaded(taskInfo) {
+            
+        }
+
+        /**
+         * Run hook when stream has been preloaded
+         */
+        async onStreamPreloaded(streamInfo, index, length) {
+
+        }
+
     }
 
     window.SCANSClient = SCANSClient;

@@ -42,6 +42,13 @@ class TaskManager:
             }
         }
 
+        self.refs = {
+            "tasks" : {}, 
+            "streams" : {}, 
+            "collectors" : {}, 
+            "analyzers" : {} 
+        }
+
     def preprocess(self, stream_ids): 
         from .Task import Task
 
@@ -51,7 +58,7 @@ class TaskManager:
         task = Task(task_id)
         task.create(stream_ids)
 
-        # preprocessing (just in case)
+        # pre-processing (just in case)
         # ...
 
         # update task
@@ -65,17 +72,28 @@ class TaskManager:
 
         # clear streams state 
         def on_clear_stream(stream_id):
-            Stream(stream_id).clear()
+            task_manager.refs["streams"][stream_id].clear()
 
-        self.clear_empties(self.state["streams"], on_clear_stream)
+        stream_dels = self.clear_empties(self.state["streams"])
 
         # clear tasks state 
         def on_clear_task(task_id):
-            Task(task_id).clear()
+            task_manager.refs["tasks"][task_id].clear()
 
-        self.clear_empties(self.state["tasks"], on_clear_task)
+        task_dels = self.clear_empties(self.state["tasks"])
 
-    def clear_empties(self, items, on_clear_item): 
+        print("Stream Dels :", stream_dels)
+        print("Task Dels :", task_dels)
+
+        # clear threads
+        for key in stream_dels: 
+            on_clear_stream(key) 
+        
+        for key in task_dels: 
+            on_clear_task(key)
+
+
+    def clear_empties(self, items): 
         to_delete = [] 
 
         for key in items:
@@ -84,7 +102,8 @@ class TaskManager:
                 to_delete.append(key)
       
         for key in to_delete: 
-            on_clear_item(key)
             del items[key]
+
+        return to_delete
 
 task_manager = TaskManager() 

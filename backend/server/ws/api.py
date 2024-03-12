@@ -43,8 +43,11 @@ def make_ws_api(socket_io):
         # create task thread (if needed)
         if task_id not in task_manager.threads["tasks"]:
             task = Task(task_id)
+            task_manager.refs["tasks"] [task_id] = task
+
             thread = \
                 socket_io.start_background_task(task.runner, socket_io)
+            
             task_manager.threads["tasks"][task_id] = thread
         
         # join task room
@@ -54,6 +57,7 @@ def make_ws_api(socket_io):
         # create stream thread (if needed) 
         for stream_id in stream_ids: 
             stream = Stream(stream_id)
+            task_manager.refs["streams"][stream_id] = stream
             
             if stream_id not in task_manager.threads["streams"]: 
                 thread = \

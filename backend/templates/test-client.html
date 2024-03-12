@@ -14,13 +14,31 @@
             (async () => {
                 const client = new SCANSClient(io)
 
+                client.onTaskPreloaded = 
+                    async (taskInfo) => {
+                        console.log(
+                            "\t> onTaskPreloaded() hook for " + 
+                            taskInfo.task_id
+                        )
+                    }
+
+                client.onStreamPreloaded = 
+                    async (streamInfo, index, length) => {
+                        console.log(
+                            "\t> onStreamPreloaded() hook for " + 
+                            streamInfo.stream_id 
+                        )
+                    }
+
+            
+
                 // await client.new([
                 //     "YTfq9PweGec",
                 //     "Dc6zkjIFCig", 
                 //     "1BlFz7HLxDU"
                 // ])
 
-                await client.load("f0f5b96c-9e73-43d0-8c17-849eeee14fdd")
+                await client.load("f0f5b96c-9e73-43d0-8c17-849eeee14fdd")               
 
                 window.client = client 
             })()
