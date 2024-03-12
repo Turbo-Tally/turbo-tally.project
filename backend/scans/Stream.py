@@ -37,29 +37,22 @@ class Stream:
 
         # create threads for collector and analyzer 
         collector_thread = \
-            Thread(target=collector.runner, args=(socket_io,))
+            socket_io.start_background_task(collector.runner, socket_io)
         task_manager.threads["collectors"][self.stream_id] = \
             collector_thread
 
         analyzer_thread = \
-            Thread(target=analyzer.runner, args=(socket_io,))
+            socket_io.start_background_task(analyzer.runner, socket_io)
         task_manager.threads["analyzers"][self.stream_id] = \
             analyzer_thread
 
-        collector_thread.start()
-        analyzer_thread.start()
- 
 
     def runner(self, socket_io): 
         # create subthreads 
         self.create_subthreads(socket_io) 
 
         while True:
-            print(
-                f"> stream.runner : Stream [{self.stream_id}]" +
-                f"-> ({ randint(1, 100)})"
-            )
-            print("\t-> Stream Switch :", self.switch)
+            # Run stream-level operations.
 
             socket_io.sleep(1) 
 

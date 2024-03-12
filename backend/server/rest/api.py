@@ -1,9 +1,12 @@
 from flask import render_template, request
 from datetime import date
+from flask_socketio import rooms
+from time import time
 
 from scans.DAL import dal
 from scans.TaskManager import task_manager
 from scans.VideoInfo import VideoInfo
+
 
 def make_rest_api(app): 
     
@@ -119,3 +122,21 @@ def make_rest_api(app):
         del stream["_id"] 
 
         return stream
+
+
+    #
+    # GET /task-manager/rooms 
+    # 
+    @app.route("/task-manager/rooms") 
+    def task_manager_rooms(): 
+        return task_manager.rooms
+
+    #
+    # GET /messages/count  
+    # 
+    @app.route("/messages/count")
+    def messages_count():
+        return str(dal.models["messages"]\
+            .context\
+            .count_documents({ "message_id" : { "$ne" : 1}}))
+        

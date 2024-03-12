@@ -49,6 +49,10 @@ class TaskManager:
             "analyzers" : {} 
         }
 
+        self.rooms = {
+            # mapping of sid to rooms
+        }
+
     def preprocess(self, stream_ids): 
         from .Task import Task
 
@@ -81,9 +85,6 @@ class TaskManager:
             task_manager.refs["tasks"][task_id].clear()
 
         task_dels = self.clear_empties(self.state["tasks"])
-
-        print("Stream Dels :", stream_dels)
-        print("Task Dels :", task_dels)
 
         # clear threads
         for key in stream_dels: 

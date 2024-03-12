@@ -1,5 +1,5 @@
 from flask import request 
-from flask_socketio import emit, send, join_room, leave_room
+from flask_socketio import emit, send, join_room, leave_room, rooms
 from time import time
 
 from scans.TaskManager import task_manager
@@ -67,6 +67,12 @@ def make_ws_api(socket_io):
             stream_room_id = "stream." + stream_id 
             join_room(stream_room_id) 
 
+        # update task manager 
+        task_manager.rooms[sid] = rooms(sid)
+
+
+
+
 
     @socket_io.on("disconnect")
     def on_disconnect():
@@ -74,6 +80,9 @@ def make_ws_api(socket_io):
         task_id = task_manager.state["clients"][sid]["task_id"]
 
         print(f"> Client disconnected -> SID: [{sid}].")
+
+        # leave room 
+        leave_room("task." + task_id)
 
         # remove record in client state 
         del task_manager.state["clients"][sid] 
@@ -86,7 +95,10 @@ def make_ws_api(socket_io):
         stream_ids = task["stream_ids"] 
         for stream_id in stream_ids: 
             del task_manager.state["streams"][stream_id][sid]
+            leave_room("stream." + stream_id)
 
         # perform general disposition tasks of task manager 
         task_manager.dispose()
-        
+
+        # update task manager 
+        del task_manager.rooms[sid]

@@ -16,11 +16,7 @@ class Analyzer:
 
     def runner(self, socket_io): 
         while True: 
-            print(
-                f"> analyzer.runner : Stream [{self.stream_id}]" +
-                   f"-> ({ randint(1, 100)})"
-            )
-            print("\t-> Collector Switch :", self.switch)
+            # Run analyzer level operations.
 
             socket_io.sleep(1) 
 

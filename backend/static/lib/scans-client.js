@@ -105,18 +105,38 @@
                 }
             });
 
+            let self = this
             this.socket = socket; 
          
             socket.on("connect", () => {
+                this.onConnect()
                 console.log("\tConnected to WebSocket server.")
             })
 
             socket.on("disconnect", () => {
+                this.onDisconnect()
                 console.log("@ Disconnected from WebSocket server.")
             })
 
             socket.on("reconnect_attempt", () => {
+                this.onReconnectAttempt()
                 console.log("\tReconnecting to WebSocket server...")
+            })
+
+            socket.on("reconnect", () => {
+                this.onReconnect() 
+                console.log("@ Reconnected to WebSocket server")
+            })
+
+            socket.on("new_message", (data) => {
+                console.log(
+                    `[Received Message] : ` + 
+                    `Stream Id -> ` + 
+                    `${data.stream_id} | ` + 
+                    `Message ID -> `  +
+                    `${data.message_id}`
+                )
+                this.onNewMessage() 
             })
         }
 
@@ -137,6 +157,33 @@
         async onStreamPreloaded(streamInfo, index, length) {
 
         }
+
+        /**
+         * Connection hooks. 
+         */
+        async onConnect() {
+
+        }
+
+        async onDisconnect() {
+
+        }
+
+        async onReconnectAttempt() {
+
+        }
+
+        async onReconnect() {
+
+        }
+
+        /** 
+         * General Event Hooks 
+         */
+        async onNewMessage() {
+
+        }
+
 
     }
 

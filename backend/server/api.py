@@ -5,6 +5,8 @@ import os
 
 load_dotenv(".env")
 
+open("out", "w")
+
 # create flask app
 app = Flask(
     __name__, 

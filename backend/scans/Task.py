@@ -40,12 +40,8 @@ class Task:
 
         while True: 
         
-            print(
-                f"> task.runner : Task [{self.task_id}] " + 
-                f"-> ({ randint(1, 100)})"
-            )
+            # Run task level operations.
 
-            print("\t-> Task Switch :", self.switch)
                             
             socket_io.sleep(1) 
 
