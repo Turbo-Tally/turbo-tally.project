@@ -11,6 +11,7 @@ class APIServer:
         
     def init(self):
         Logger.log("api_server", "> Initializing API Server...") 
+        Logger.log("api/rest", "hello")
 
     def run(self):
         Logger.log("api_server", "> Running API Server...")

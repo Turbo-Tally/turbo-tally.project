@@ -6,6 +6,7 @@
 #   Logger.log("default", "Hello, there! - from script.py")
 # 
 from datetime import datetime
+import os
 
 class Logger:
     disabled_logs = set()
@@ -21,9 +22,14 @@ class Logger:
         f = open(f"./logs/{name}.log", "w")
         f.close()
 
+    def clear_all(name): 
+        os.rmdir("./logs/")
+
     def log(name, data, **kwargs): 
         if name not in Logger.disabled_logs:
-            f = open(f"./logs/{name}.log", "a")
+            path = f"./logs/{name}.log"
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            f = open(path, "a")
             f.write(
                 str(datetime.now().strftime("%m\%d\%Y %H:%M:%S")) + 
                 " | " + 

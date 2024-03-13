@@ -8,14 +8,14 @@ nodemon \
     --exec "./env/bin/python3 -m server" \
     --ext "*" \
     --ignore "**/__pycache__" \
-    --ignore "./logs/*.log" &
+    --ignore "**/*.log" &
 
 # run exchange rates fetcher
 nodemon \
     --exec "./env/bin/python3 -m scans.scripts.fetch_exchange_rates" \
     --ext "*" \
     --ignore "**/__pycache__" \
-    --ignore "./logs/*.log" &
+    --ignore "**/*.log" &
 
 # do not exit
 sleep infinity
