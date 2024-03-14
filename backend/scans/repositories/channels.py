@@ -10,6 +10,12 @@ class Channels(Repository):
         self.collection_name = "channels" 
         self.main_key        = "channel_id"
 
-        Model.__init__(self)
+        Repository.__init__(self)
+
+    def streamExistsIn(self, stream_id, channel_id): 
+        return self.coll.find_one({ 
+            "stream_list." + stream_id : { "$exists" : True }
+        }) is not None
+
 
 channels = Channels()

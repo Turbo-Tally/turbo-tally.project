@@ -22,5 +22,4 @@ conn_url = \
     "@" + host + ":" + port
 
 # create connection object
-db = MongoClient(conn_url)
-
+db = MongoClient(conn_url)["scans"]

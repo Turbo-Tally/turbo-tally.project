@@ -10,6 +10,19 @@ class Streams(Repository):
         self.collection_name = "streams" 
         self.main_key        = "stream_id"
 
-        Model.__init__(self)
+        Repository.__init__(self)
+    
+    def blank(self, video_id, channel_id):
+        streams.create({
+            "stream_id"  : video_id, 
+            "channel_id" : channel_id, 
+            "reports" : {
 
+            }, 
+            "timestamps" : {
+                "created_at" : time(), 
+                "updated_at" : None
+            }
+        })
+        
 streams = Streams()

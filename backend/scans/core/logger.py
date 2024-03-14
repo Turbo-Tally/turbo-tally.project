@@ -7,6 +7,7 @@
 # 
 from datetime import datetime
 import os
+import shutil
 
 class Logger:
     disabled_logs = set()
@@ -19,11 +20,15 @@ class Logger:
             Logger.disabled_logs.remove(name)
 
     def clear(name):
-        f = open(f"./logs/{name}.log", "w")
+        path = f"./logs/{name}.log"
+        if not os.path.exists(path): 
+            return
+        f = open(path, "w")
         f.close()
 
-    def clear_all(name): 
-        os.rmdir("./logs/")
+    def clear_all(context = ""): 
+        shutil.rmtree(f"./logs/{context}")
+        os.mkdir(f"./logs/{context}")
 
     def log(name, data, **kwargs): 
         if name not in Logger.disabled_logs:

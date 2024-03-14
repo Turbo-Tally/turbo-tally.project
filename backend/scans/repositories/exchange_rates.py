@@ -10,6 +10,6 @@ class ExchangeRates(Repository):
         self.collection_name = "exchange_rates" 
         self.main_key        = "date"
 
-        Model.__init__(self)
+        Repository.__init__(self)
 
 exchange_rates = ExchangeRates()

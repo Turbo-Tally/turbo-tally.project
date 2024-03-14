@@ -17,5 +17,13 @@ nodemon \
     --ignore "**/__pycache__" \
     --ignore "**/*.log" &
 
+
+# run channel monitor fetcher
+nodemon \
+    --exec "./env/bin/python3 -m scans.scripts.monitor_channels" \
+    --ext "*" \
+    --ignore "**/__pycache__" \
+    --ignore "**/*.log" &
+
 # do not exit
 sleep infinity

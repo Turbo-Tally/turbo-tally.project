@@ -10,6 +10,7 @@ class Messages(Repository):
         self.collection_name = "messages" 
         self.main_key        = "message_id"
 
-        Model.__init__(self)
+        Repository.__init__(self)
 
+    
 messages = Messages()
