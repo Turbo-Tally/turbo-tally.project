@@ -2,7 +2,7 @@ version: "3.3"
 
 services: 
   frontend: 
-    container_name: scans.frontend 
+    container_name: turbo_tally.frontend 
     build: 
       context: ./frontend 
       dockerfile: Dockerfile 
@@ -15,12 +15,12 @@ services:
       - .env 
     command: bash start.sh 
     volumes: 
-      - ./frontend:/home/scans.frontend 
+      - ./frontend:/home/turbo_tally.frontend 
     networks: 
       - main
 
   backend: 
-    container_name: scans.backend 
+    container_name: turbo_tally.backend 
     build: 
       context: ./backend 
       dockerfile: Dockerfile
@@ -34,12 +34,12 @@ services:
       - .env 
     command: bash start.sh
     volumes: 
-      - ./backend:/home/scans.backend 
+      - ./backend:/home/turbo_tally.backend 
     networks: 
       - main
 
   cache: 
-    container_name: scans.cache
+    container_name: turbo_tally.cache
     image: redis:7.2.4-alpine 
     user: root
     restart: always
@@ -57,7 +57,7 @@ services:
       - main
 
   database: 
-    container_name: scans.database
+    container_name: turbo_tally.database
     image: mongo:7.0.7-rc0-jammy
     user: root
     environment:

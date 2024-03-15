@@ -12,7 +12,7 @@ nodemon \
 
 # run exchange rates fetcher
 nodemon \
-    --exec "./env/bin/python3 -m scans.scripts.fetch_exchange_rates" \
+    --exec "./env/bin/python3 -m modules.scripts.fetch_exchange_rates" \
     --ext "*" \
     --ignore "**/__pycache__" \
     --ignore "**/*.log" &
@@ -20,7 +20,7 @@ nodemon \
 
 # run channel monitor fetcher
 nodemon \
-    --exec "./env/bin/python3 -m scans.scripts.monitor_channels" \
+    --exec "./env/bin/python3 -m modules.scripts.monitor_channels" \
     --ext "*" \
     --ignore "**/__pycache__" \
     --ignore "**/*.log" &

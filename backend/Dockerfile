@@ -1,10 +1,10 @@
 FROM ubuntu:22.04 
 
-RUN mkdir /home/scans.backend
+RUN mkdir /home/turbo_tally.backend
 
 # create working directory
-WORKDIR /home/scans.backend 
-COPY . /home/scans.backend
+WORKDIR /home/turbo_tally.backend 
+COPY . /home/turbo_tally.backend
 RUN mkdir /usr/local/nvm
 
 ENV HOME /root
@@ -29,7 +29,7 @@ RUN . $NVM_DIR/nvm.sh && \
     npm install -g nodemon
 
 # activate virtual environment
-RUN . /home/scans.backend/env/bin/activate
+RUN . /home/turbo_tally.backend/env/bin/activate
 
 # export paths
 ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules

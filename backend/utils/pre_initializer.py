@@ -1,5 +1,5 @@
-from scans.repositories.channels import channels 
-from scans.services.admin import Admin
+from turbo_tally.repositories.channels import channels 
+from turbo_tally.services.admin import Admin
 
 if channels.count_all() == 0: 
     Admin.register_channel("UCL_PUTuqwYwTxwRzA5lJTKA")

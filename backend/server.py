@@ -1,5 +1,5 @@
 from dotenv import load_dotenv 
-from scans.core.logger import Logger
+from modules.core.logger import Logger
 
 #
 # Clear server logs. 
@@ -19,7 +19,7 @@ import utils.pre_initializer
 #
 # Load API server. 
 # 
-from scans.api.api_server import APIServer 
+from modules.api.api_server import APIServer 
 
 api_server = APIServer()
 api_server.init()
