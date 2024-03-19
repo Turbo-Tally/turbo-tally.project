@@ -8,8 +8,9 @@ class Variables(Repository):
     def __init__(self): 
         
         self.collection_name = "variables" 
-        self.main_key        = "key"
+        self.main_key        = "_id"
 
         Repository.__init__(self)
+
 
 variables = Variables()

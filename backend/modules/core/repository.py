@@ -14,15 +14,9 @@ class Repository:
         # collection object
         self.coll = getattr(self.db, self.collection_name)
 
-        # create main index
-        self.create_main_index()
+ 
 
-    def create_main_index(self, **kwargs):
-        index_type = kwargs.get("index_type", pymongo.TEXT) 
-        self.coll.create_index(
-            [(self.main_key, index_type)], 
-            name="main_index"
-        )
+
 
     def create(self, data): 
         insert_id = self.coll.insert_one(data).inserted_id 

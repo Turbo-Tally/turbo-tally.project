@@ -1,5 +1,5 @@
 from dotenv import load_dotenv 
-from modules.core.logger import Logger
+from modules.core.logging import Logger
 
 #
 # Clear server logs. 
@@ -14,7 +14,7 @@ load_dotenv(".env")
 #
 # Pre-initialization.
 # 
-import utils.pre_initializer
+import utils.preloader
 
 #
 # Load API server. 

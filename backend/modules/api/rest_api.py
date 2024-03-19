@@ -4,6 +4,8 @@
 #
 
 from flask import Flask, render_template
+from flask_cors import CORS
+from modules.core.logging import Logger
 import os
 
 def create_rest_api(): 
@@ -18,6 +20,17 @@ def create_rest_api():
         static_folder    = STATIC_FOLDER,
         template_folder  = TEMPLATES_FOLDER
     ) 
+
+    # allow cross origin request
+    CORS(
+        app,
+        supports_credentials = True, 
+        resource = {
+            r"/*" : {
+                "origins" : "*"
+            }
+        }
+    )
 
     ################
     # SETUP ROUTES #
@@ -36,5 +49,8 @@ def create_rest_api():
     @app.route("/ping")
     def ping():
         return "PONG" 
+
+
+    return app
 
    

@@ -2,7 +2,7 @@
 # :: api_server.py 
 # Set up API Server (REST + WS API)
 # 
-from scans.core.logger import Logger
+from modules.core.logging import Logger
 
 class APIServer: 
     def __init__(self):
@@ -26,4 +26,9 @@ class APIServer:
 
     def run(self):
         Logger.log("api/api_server", "> Running API Server...")
-        self.socket_io.run(self.flask_app, "0.0.0.0", 80, debug=True)
+        self.socket_io.run(
+            self.flask_app, 
+            "0.0.0.0", 80,
+            debug=True,
+            allow_unsafe_werkzeug=True    
+        )

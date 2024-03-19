@@ -8,7 +8,7 @@ class Users(Repository):
     def __init__(self): 
         
         self.collection_name = "users" 
-        self.main_key        = "user_id"
+        self.main_key        = "_id"
 
         Repository.__init__(self)
 
