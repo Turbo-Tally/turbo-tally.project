@@ -2,7 +2,7 @@
 # :: users.py 
 # Repository for `users` collection. 
 # 
-from scans.core.repository import Repository 
+from modules.core.repository import Repository 
 
 class Users(Repository): 
     def __init__(self): 

@@ -22,4 +22,5 @@ conn_url = \
     "@" + host + ":" + port
 
 # create connection object
-db = MongoClient(conn_url)["scans"]
+database = os.getenv("MONGODB_DATABASE")
+db = MongoClient(conn_url)[database]

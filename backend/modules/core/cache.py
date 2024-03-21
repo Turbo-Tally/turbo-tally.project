@@ -15,5 +15,6 @@ redis = Redis(
     host=REDIS_HOST, 
     port=REDIS_PORT,
     password=REDIS_PASSWORD,
-    db=0
+    db=0,
+    decode_responses=True
 ) 

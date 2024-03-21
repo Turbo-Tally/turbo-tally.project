@@ -15,9 +15,6 @@ class Repository:
         self.coll = getattr(self.db, self.collection_name)
 
  
-
-
-
     def create(self, data): 
         insert_id = self.coll.insert_one(data).inserted_id 
         return insert_id 
@@ -36,14 +33,14 @@ class Repository:
             ) 
 
     def upsert(self, key_value, data): 
-        if self.coll.exists(key_value): 
-            self.create(data)
+        if self.exists(key_value): 
+            self.update(key_value, data)
         else: 
-            self.update(key_value, data) 
+            self.create(data) 
 
     def delete(self, key_value): 
         self.coll\
-            .delete_one(key_value)
+            .delete_one({ self.main_key : key_value })
 
     def count_all(self): 
         return self.coll.count_documents({})

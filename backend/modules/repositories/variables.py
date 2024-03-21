@@ -2,7 +2,7 @@
 # :: variables.py 
 # Repository for `variables` collection. 
 # 
-from scans.core.repository import Repository 
+from modules.core.repository import Repository 
 
 class Variables(Repository): 
     def __init__(self): 

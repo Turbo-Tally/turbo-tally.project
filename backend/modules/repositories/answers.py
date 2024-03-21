@@ -2,6 +2,7 @@
 # :: answers.py 
 # Answers repository 
 # 
+from modules.core.repository import Repository 
 
 class Answers(Repository): 
     def __init__(self): 
