@@ -139,10 +139,6 @@ import ResultCard from "@/components/dashboard/ResultCard.vue"
                 opacity: 0.5;
             }
         }
-
-        .choices {
-            display: flex;
-        }
        
     }
 </style>

@@ -13,6 +13,12 @@ async function testPing() {
     )
 } 
 
+// test POST data 
+await httpClient.post("/auth/sign-up", {
+    "foo" : "bar"
+})
+
+
 await testPing()
 
 window.httpClient = httpClient

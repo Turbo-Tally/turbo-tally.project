@@ -1,15 +1,9 @@
-from dotenv import load_dotenv 
 from modules.core.logging import Logger
 
 #
 # Clear server logs. 
 # 
 Logger.clear_all("api")
-
-#
-# Load environment file (.env) 
-#
-load_dotenv(".env")
 
 #
 # Pre-initialization.

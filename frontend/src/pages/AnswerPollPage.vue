@@ -44,9 +44,7 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                         <div class="label"> 
                             <button 
                                 class="primary-btn"
-                                style="
-                                    background-color: rgb(50, 50, 50);
-                                "
+                                style="background-color: rgb(50, 50, 50);"
                             > 
                                 SKIP
                             </button> 
