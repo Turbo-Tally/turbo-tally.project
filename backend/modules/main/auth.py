@@ -55,6 +55,9 @@ class Authentication:
     def create_user(self, data): 
         users.create(data)
 
+    def remove_user(self, user_id):
+        users.delete(user_id)
+
     def check_if_user_already_exists_by(self, field, value): 
         return (
             users.coll.find_one({

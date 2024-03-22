@@ -16,12 +16,12 @@ class APIServer:
         
         # create flask app 
         Logger.log("api/api_server", "> Initializing Flask app...")
-        from .rest_api import create_rest_api
+        from .rest.rest_api import create_rest_api
         self.flask_app = create_rest_api() 
 
-        # create websocket app 
+        # create websocket app s
         Logger.log("api/api_server", "> Initializing Flask-SocketIO app...")
-        from .ws_api import create_ws_api 
+        from .ws.ws_api import create_ws_api 
         self.socket_io = create_ws_api(self.flask_app)
 
     def run(self):

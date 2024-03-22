@@ -1,6 +1,8 @@
 # set up environment
 source /usr/local/nvm/nvm.sh
 
+source /home/turbo_tally.backend/env/bin/activate
+
 hostname -I > ip_address && 
 
 # run api server
