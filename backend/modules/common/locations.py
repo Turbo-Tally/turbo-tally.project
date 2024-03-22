@@ -68,7 +68,7 @@ provinces = [
   { "name": "Camarines Sur", "region": "V", "key": "CAS" },
   { "name": "Catanduanes", "region": "V", "key": "CAT" },
   { "name": "Masbate", "region": "V", "key": "MAS" },
-  { "name": "Sorsogon", "region": "V", "key": "SOR" },
+  { "name": "Sorsogon", "region": "V", "key": "SOR" }, 
 
   { "name": "Aklan", "region": "VI", "key": "AKL" },
   { "name": "Antique", "region": "VI", "key": "ANT" },

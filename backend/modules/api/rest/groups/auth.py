@@ -103,13 +103,17 @@ def auth__sign_up():
         }
 
     # check if email verification codes is invalid 
-    if not auth.check_verif_code(data["email"], data["email_code"]): 
+    if not auth.check_verif_code(
+        "email-verif", data["email"], data["email_code"]
+    ): 
         return {
             "status" : "INVALID_EMAIL_CODE"
         }
 
     # check if sms verification code is invalid 
-    if not auth.check_verif_code(data["mobile_no"], data["sms_code"]): 
+    if not auth.check_verif_code(
+        "mobile-verif", data["mobile_no"], data["sms_code"]
+    ): 
         return {
             "status" : "INVALID_SMS_CODE"
         }
@@ -162,11 +166,12 @@ def auth__generate_code():
 # 
 @auth_blueprint.route("/verify-code", methods=["POST"])
 def auth__verify_code():
+    type_ = request.args.get("type")
     handle = request.args.get("handle")
     code = request.args.get("code") 
 
     # check if code is correct 
-    is_valid = auth.check_verif_code(handle, code)
+    is_valid = auth.check_verif_code(type_, handle, code)
 
     if not is_valid: 
         return {
@@ -460,7 +465,6 @@ def auth__change_password():
             }
         }
     )
-
 
     return {
         "status" : "PASSWORD_CHANGED"

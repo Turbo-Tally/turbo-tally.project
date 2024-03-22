@@ -2,6 +2,7 @@ import os
 import requests
 from dotenv import load_dotenv 
 import pytest 
+import datetime
 
 from .init_tests import BASE_URL
 
@@ -12,12 +13,16 @@ from .init_tests import BASE_URL
     * Log In (Wrong Password) [/]
     * Log In (Correct Credentials) [/]
     * User (Logged In) [/]
-    * Log Out 
+    * Log Out [/]
     * Generate Verification Code [/] - handled by sign up 
     * Check Verification Code (Right) [/] - handled by sign up
     * Check Verification Code (Wrong) [/] 
     * Forgot Password (E-mail Does Not Exist) [/]
     * Forgot Password (E-mail Exists) [/]
+
+    * Update Info
+    * Change Password 
+    * Change E-mail 
 """
 
 class Actions:
@@ -28,7 +33,7 @@ class Actions:
         sms_vc_response = \
             requests.get(
                 f"{BASE_URL}/auth/generate-verif-code?" + 
-                f"type=mobile&" +
+                f"type=mobile-verif&" +
                 f"handle=09123456789"    
             ) 
         sms_vc_response_json = sms_vc_response.json() 
@@ -38,7 +43,7 @@ class Actions:
         email_vc_response = \
             requests.get(
                 f"{BASE_URL}/auth/generate-verif-code?" +
-                f"type=mobile&" +
+                f"type=email-verif&" +
                 f"handle=johndoe@example.com"    
             )
         email_vc_response_json = email_vc_response.json() 
@@ -51,13 +56,15 @@ class Actions:
         check_email_code = \
             requests.post(
                 f"{BASE_URL}/auth/verify-code?" + 
+                f"type=email-verif&" +
                 f"handle=johndoe@example.com&" +
                 f"code={email_code}"
             )
 
         check_sms_code = \
             requests.post(
-                f"{BASE_URL}/auth/verify-code?" + 
+                f"{BASE_URL}/auth/verify-code?" +
+                f"type=mobile-verif&" + 
                 f"handle=09123456789&" +
                 f"code={sms_code}"
             )
@@ -99,19 +106,20 @@ class Actions:
         session_id = response.cookies.get("SESSION_ID")
         return session_id
 
-    def login(func = None):
+    def login(**kwargs):
         session_id = Actions.get_session_id() 
 
         Actions.session_list.append(session_id)
         
-        Actions.sign_up() 
+        if kwargs.get("sign_up", True):
+            Actions.sign_up() 
         
         log_in = \
             requests.post(
                 f"{BASE_URL}/auth/log-in",
                 json = {
-                    "email" : "johndoe@example.com",
-                    "password" : "@JohnDoe1234();"
+                    "email" : kwargs.get("email", "johndoe@example.com"),
+                    "password" : kwargs.get("password", "@JohnDoe1234();")
                 },
                 cookies = {
                     "SESSION_ID" : session_id
@@ -148,10 +156,11 @@ class TestAuth:
     def test_can_sign_up(self): 
         Actions.sign_up()
 
-    def test_check_verification_code(self): 
+    def test_check_verification_code_invalid_code(self): 
         response = \
             requests.post(
                 f"{BASE_URL}/auth/verify-code?" + 
+                f"type=some-code"
                 f"handle=johndoe@example.com&" + 
                 f"code=000000"
             )
@@ -265,3 +274,146 @@ class TestAuth:
             )
         user_json = user.json()
         assert user_json["status"] == "USER_NOT_LOGGED_IN"
+
+    def test_update_info(self):
+        session_id = Actions.login() 
+
+        # try to change user info 
+        change = \
+            requests.post(
+                f"{BASE_URL}/auth/update-info", 
+                cookies = {
+                    "SESSION_ID" : session_id
+                },
+                json = {
+                    "birthdate" : "1990-01-01 00:00:00", 
+                    "gender" : "F", 
+                    "region" : "V",
+                    "province" : "CAN" 
+                }
+            )
+
+        change_json = change.json() 
+
+        assert change_json["status"] == "INFO_UPDATED"
+
+        # check if details have changed 
+        user = \
+            requests.get(
+                f"{BASE_URL}/auth/user",
+                cookies = {
+                    "SESSION_ID" : session_id 
+                }
+            )
+
+        user_json = user.json()
+
+        # transform birthdate
+        birthdate = datetime.datetime.strptime(
+            user_json["data"]["info"]["birthdate"],
+            "%a, %d %b %Y %H:%M:%S %Z"
+        )
+
+        assert str(birthdate) == "1990-01-01 00:00:00" 
+        assert user_json["data"]["info"]["gender"] == "F" 
+        assert user_json["data"]["info"]["region"] == "V" 
+        assert user_json["data"]["info"]["province"] == "CAN"
+
+    def test_change_email(self): 
+        session_id = Actions.login() 
+
+        # get email change code 
+        email_code = \
+            requests.get(
+                f"{BASE_URL}/auth/generate-verif-code?" +
+                f"type=email-change&" +
+                f"handle=johndoe1234@example.com"
+            )
+        
+        email_code = email_code.json()["code"]["value"]
+
+        # try to change email 
+        change_email = \
+            requests.post(
+                f"{BASE_URL}/auth/change-email",
+                json = {
+                    "email" : "johndoe1234@example.com", 
+                    "code" : email_code
+                },
+                cookies = {
+                    "SESSION_ID" : session_id
+                }
+            )
+
+        change_email_json = change_email.json() 
+
+        assert change_email_json["status"] == "EMAIL_CHANGED" 
+
+
+        # check if email has changed in user details 
+        user = \
+            requests.get(
+                f"{BASE_URL}/auth/user", 
+                cookies = {
+                    "SESSION_ID" : session_id
+                }
+            )
+
+        user_json = user.json() 
+
+        assert user_json["data"]["auth"]["email"] == "johndoe1234@example.com"
+
+
+    def test_change_password(self): 
+        session_id_a = Actions.login() 
+        
+        # change password of current user 
+        change_password = \
+            requests.post(
+                f"{BASE_URL}/auth/change-password", 
+                cookies = {
+                    "SESSION_ID" : session_id_a
+                },
+                json = {
+                    "current_password" : "@JohnDoe1234();", 
+                    "new_password" : "@JohnDoe4321();"
+                }
+            )
+        change_password_json = change_password.json() 
+        assert change_password_json["status"] == "PASSWORD_CHANGED"
+
+        # try to log in user again with the previous password 
+        # expects error 
+        session_id_b = Actions.get_session_id() 
+        attempt_login = \
+            requests.post(
+                f"{BASE_URL}/auth/log-in", 
+                cookies = {
+                    "SESSION_ID" : session_id_b
+                }, 
+                json = {
+                    "email" : "johndoe@example.com", 
+                    "password" : "@JohnDoe1234();"
+                }
+            ) 
+        attempt_login_json = attempt_login.json() 
+        assert attempt_login_json["status"] == "INVALID_PASSWORD" 
+
+        # try to log in user again with the new password
+        # expects successful login 
+        session_id_c = Actions.get_session_id() 
+        reattempt_login = \
+            requests.post(
+                f"{BASE_URL}/auth/log-in", 
+                cookies = {
+                    "SESSION_ID" : session_id_b
+                }, 
+                json = {
+                    "email" : "johndoe@example.com", 
+                    "password" : "@JohnDoe4321();"
+                }
+            ) 
+        reattempt_login_json = reattempt_login.json() 
+        assert reattempt_login_json["status"] == "LOGGED_IN"
+
+        
