@@ -32,7 +32,6 @@ formats["email"] = {
 }
 
 # password validator  
-
 formats["password"] = {
     "type" : "string", 
     "minlength" : 8, 
@@ -108,6 +107,20 @@ formats["verif_code"] = {
     "maxlength" : 6, 
     "regex" : "[0-9]{6}"
 }
+
+# poll title 
+formats["poll_title"] = {
+    "type" : "string", 
+    "minlength" : 5, 
+    "maxlength" : 256
+}
+
+# poll answer 
+formats["poll_choice"] = {
+    "type" : "string", 
+    "minlength" : 1, 
+    "maxlength" : 64 
+} 
 
 
 ####################

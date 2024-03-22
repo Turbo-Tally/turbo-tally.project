@@ -18,7 +18,6 @@ from modules.common.password_generation import random_password
 
 from modules.repositories.verif_codes import verif_codes
 from modules.repositories.users import users
-from modules.repositories.sessions import sessions
 
 ############################
 # AUTHENTICATION ENDPOINTS # 
@@ -64,7 +63,7 @@ def auth__sign_up():
             "is_admin" : False, 
             "is_bot" : False
         },
-        "created_at" : "2022-01-01", 
+        "created_at" : datetime.now().strftime(datetime_format), 
         "updated_at" : None
     }
 

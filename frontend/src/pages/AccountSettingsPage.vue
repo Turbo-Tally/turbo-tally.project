@@ -1,6 +1,7 @@
 <script setup> 
 
 import DefaultLayout from "../layouts/DefaultLayout.vue"
+import DatePicker from "../components/DatePicker.vue"
 
 </script> 
 
@@ -49,10 +50,15 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                                 </div>
                             </div>
                         </div> 
-                        <div class="controls" style="margin-top: 10px"> 
-                            <button class="primary-btn">
-                                UPDATE 
-                            </button>
+                        <div class="form-content">
+                            <div class="form-item-flex"> 
+                                <div class="form-subitem centered title">
+                                    <b>Birthdate</b>
+                                </div> 
+                                <div class="form-subitem" style="flex: 1">
+                                    <DatePicker />
+                                </div>
+                            </div>
                         </div> 
                     </div> 
                 </div> 

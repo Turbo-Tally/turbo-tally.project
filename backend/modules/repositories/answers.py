@@ -16,4 +16,4 @@ class Answers(Repository):
         self.coll.create_index("user._id", name="user_id")
         self.coll.create_index("poll._id", name="poll_id")
 
-questions = Answers()
+answers = Answers()

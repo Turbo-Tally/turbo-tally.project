@@ -69,4 +69,8 @@ select {
 .wide-btn:hover, .primary-btn:active {
     opacity: 0.9;
 }
-               
+
+select {
+    width: 100%;
+    text-align: center;
+}

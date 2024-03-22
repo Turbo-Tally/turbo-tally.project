@@ -1,6 +1,7 @@
 <script setup> 
 
 import DefaultLayout from "../layouts/DefaultLayout.vue"
+import DatePicker from "../components/DatePicker.vue"
 
 </script> 
 
@@ -38,12 +39,41 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                     </div> 
                     <div class="birthdate form-item-flex">
                         <div class="form-subitem label">
-                            <b>BIRTHDATE</b>
+                            <b>Birthdate</b>
                         </div>
                         <div class="form-subitem datepicker">
-                            <input 
-                                type="date" 
-                            />
+                            <DatePicker />
+                        </div>
+                    </div> 
+                    <div class="birthdate form-item-flex">
+                        <div class="form-subitem label">
+                            <b>Gender</b>
+                        </div>
+                        <div class="form-subitem datepicker">
+                            <select>    
+                                <option>Male</option> 
+                                <option>Female</option>
+                            </select> 
+                        </div>
+                    </div>
+                    <div class="birthdate form-item-flex">
+                        <div class="form-subitem label">
+                            <b>Region</b>
+                        </div>
+                        <div class="form-subitem datepicker">
+                            <select>    
+                                <option>V - Bikol Region</option> 
+                            </select>
+                        </div>
+                    </div> 
+                    <div class="birthdate form-item-flex">
+                        <div class="form-subitem label">
+                            <b>Province</b>
+                        </div>
+                        <div class="form-subitem datepicker">
+                            <select>    
+                                <option>Camarines Sur</option> 
+                            </select>
                         </div>
                     </div> 
                     <div class="email-code form-item-flex">
