@@ -110,12 +110,28 @@ formats["verif_code"] = {
 }
 
 
+####################
+# HELPER FUNCTIONS #
+#################### 
+
 def extend_format(dict_a, dict_b): 
     return dict(dict_a, **dict_b)
 
-def require_all(dict_a): 
+def require_all(dict_a, is_required = True): 
     dict_b = {} 
     for key in dict_a:
         dict_b[key] = dict_a[key] 
-        dict_b[key]["required"] = True
+        dict_b[key]["required"] = is_required
     return dict_b
+
+def is_province_allowed(region, province): 
+    # get list of allowed province in region 
+    def filter_fn(province_record): 
+        return province_record["region"] == region
+
+    allowed_provinces = \
+        list(filter(filter_fn, provinces))
+    allowed_province_keys = \
+        list(map(lambda province: province["key"], allowed_provinces))
+
+    return province in allowed_province_keys

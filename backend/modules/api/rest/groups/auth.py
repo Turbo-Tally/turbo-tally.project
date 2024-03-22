@@ -12,7 +12,7 @@ import os
 from modules.main.auth import auth
 
 from modules.common.formats \
-    import formats, extend_format, require_all, datetime_format
+    import formats, extend_format, require_all, datetime_format, is_province_allowed
 from modules.common.schemas import schemas
 from modules.common.password_generation import random_password
 
@@ -72,6 +72,12 @@ def auth__sign_up():
     if os.getenv("ENV_MODE") == "dev": 
         norm_data["auth"]["password"] = data["password"]
 
+    # check if province is allowed 
+    if not is_province_allowed(data["region"], data["province"]): 
+        return {
+            "status" : "PROVINCE_NOT_ALLOWED"
+        }
+
     # check if username already exists 
     if auth.check_if_user_already_exists_by(
         "auth.username", data["username"]
@@ -108,8 +114,8 @@ def auth__sign_up():
             "status" : "INVALID_SMS_CODE"
         }
     
-    auth.clear_verif_code(data["mobile_no"])
-    auth.clear_verif_code(data["email"])
+    auth.clear_verif_code("mobile", data["mobile_no"])
+    auth.clear_verif_code("email-verif", data["email"])
 
     # register user in the database 
     auth.create_user(norm_data)
@@ -326,3 +332,136 @@ def auth__forgot_password():
         out_data["temporary_password"] = new_password
 
     return out_data
+
+#
+# POST /auth/update-info
+# 
+@auth_blueprint.route("/update-info", methods=["POST"]) 
+def auth__update_info(): 
+    data = request.json
+
+    # define schema for validation
+    schema = schemas["info_update_input"]
+
+    # validator 
+    v = Validator(schema) 
+    v.validate(data)  
+
+    if v.errors != {}: 
+        return {
+            "status" : "VALIDATION_ERROR", 
+            "errors" : v.errors
+        }
+
+    # normalize bithdate 
+    if "birthdate" in data:
+        data["birthdate"] = \
+            datetime.strptime(data["birthdate"], datetime_format)
+
+    if "province" in data: 
+        region = None 
+        if "region" in data: 
+            if not is_province_allowed(data["region"], data["province"]): 
+                return {
+                    "status" : "PROVINCE_NOT_ALLOWED"
+                } 
+        else:
+            user = request.app["user"]
+            info = user["info"]
+            if not is_province_allowed(info["region"], data["province"]): 
+                return {
+                    "status" : "PROVINCE_NOT_ALLOWED"
+                } 
+
+    # update user info 
+    auth.update_user_info(request.app["user"]["_id"], data)
+
+    return {
+        "status" : "INFO_UPDATED"
+    }
+
+
+#
+# POST /auth/change-email
+# 
+@auth_blueprint.route("/change-email", methods=["POST"]) 
+def auth__change_email(): 
+    data = request.json
+    user = request.app["user"]
+
+    # define schema for validation
+    schema = {
+        "email" : formats["email"],
+        "code"  : formats["verif_code"]
+    }
+
+    # validator 
+    v = Validator(schema) 
+    v.validate(data)  
+
+    # check if verification code is correct
+    if not auth.check_verif_code(
+        "email-change", data["email"], data["code"]
+    ):
+        return {
+            "status" : "INVALID_CODE"
+        }
+
+    # clear verification code 
+    auth.clear_verif_code("email-change", data["email"])
+
+    # change email of user 
+    users.coll.update_one(
+        { "_id" : user["_id"]}, 
+        {
+            "$set" : {
+                "auth.email" : data["email"]
+            }
+        }
+    )
+
+    return {
+        "status" : "EMAIL_CHANGED"
+    }
+
+
+
+# POST /auth/change-password
+# 
+@auth_blueprint.route("/change-password", methods=["POST"]) 
+def auth__change_password(): 
+    data = request.json
+    user = request.app["user"]
+
+    # define schema for validation
+    schema = {
+        "current_password" : { "type" : "string" }, 
+        "new_password" : formats["password"]
+    }
+
+    # validator 
+    v = Validator(schema) 
+    v.validate(data)  
+
+    # check if current password matches
+    current_password_hash = user["auth"]["password_hash"] 
+    if auth.hash(data["current_password"]) != current_password_hash: 
+        return {
+            "status" : "INVALID_CURRENT_PASSWORD"
+        }
+
+    # change password 
+    users.coll.update_one(
+        { "_id" : user["_id"] }, 
+        { 
+            "$set" : { 
+                "auth.password" : data["new_password"], 
+                "auth.password_hash" : auth.hash(data["new_password"])
+            }
+        }
+    )
+
+
+    return {
+        "status" : "PASSWORD_CHANGED"
+    }

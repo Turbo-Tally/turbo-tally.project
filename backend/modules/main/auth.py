@@ -35,8 +35,11 @@ class Authentication:
             "expires_at" : expiration_time
         })
 
-    def check_verif_code(self, handle, code): 
-        verif_code = verif_codes.read(handle) 
+    def check_verif_code(self, type_, handle, code): 
+        verif_code = verif_codes.coll.find_one({
+            "type" : type_, 
+            "handle" : handle
+        })
 
         if verif_code is None: 
             return False
@@ -49,8 +52,11 @@ class Authentication:
         
         return True
 
-    def clear_verif_code(self, handle):
-        verif_codes.delete(handle)
+    def clear_verif_code(self, type_, handle):
+        verif_codes.coll.delete_one({
+            "type" : type_, 
+            "handle" : handle
+        })
 
     def create_user(self, data): 
         users.create(data)
@@ -77,5 +83,13 @@ class Authentication:
 
     def find_user_by_email(self, email): 
         return users.coll.find_one({ "auth.email" : email })
+
+    def update_user_info(self, user, data):
+        update_field = {} 
+
+        for key in data: 
+            update_field["info." + key] = data[key]
+
+        users.update(user, update_field)
 
 auth = Authentication()

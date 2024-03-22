@@ -19,3 +19,15 @@ schemas["registration_input"] = {
 }   
 
 require_all(schemas["registration_input"])
+
+#
+# Update Info Schema 
+# 
+schemas["info_update_input"] = {
+    "region"        : formats["region"], 
+    "province"      : formats["province"], 
+    "birthdate"     : formats["datetime_str"], 
+    "gender"        : formats["gender"]
+}
+
+require_all(schemas["info_update_input"], False)
