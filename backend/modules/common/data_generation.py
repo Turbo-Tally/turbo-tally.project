@@ -51,4 +51,7 @@ def generate_random_user():
     return data
     
 def generate_random_poll():
-    
+    pass
+
+def generate_answer(): 
+    pass 

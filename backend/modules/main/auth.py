@@ -59,6 +59,7 @@ class Authentication:
         })
 
     def create_user(self, data): 
+        data["_id"] = users.next_id()
         users.create(data)
 
     def remove_user(self, user_id):
@@ -75,11 +76,14 @@ class Authentication:
         redis.hset(f"users", session_id, user_id)
 
     def get_session_user(self, session_id): 
-        user_id = redis.hget(f"users", session_id)
-        return users.coll.find_one({ "_id" : ObjectId(user_id) })
+        user_id = int(redis.hget(f"users", session_id))
+        return users.coll.find_one({ "_id" : user_id })
 
     def clear_session_user(self, session_id): 
         redis.hdel("users", session_id)
+
+    def is_session_logged_in(self, session_id): 
+        return redis.hexists("users", session_id)
 
     def find_user_by_email(self, email): 
         return users.coll.find_one({ "auth.email" : email })

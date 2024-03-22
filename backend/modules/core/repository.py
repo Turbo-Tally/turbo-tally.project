@@ -44,3 +44,8 @@ class Repository:
 
     def count_all(self): 
         return self.coll.count_documents({})
+
+    def next_id(self):
+        from modules.repositories.auto_increments import auto_increments 
+        return auto_increments.next(self.collection_name) 
+        

@@ -94,8 +94,8 @@ def voting__answer_poll(poll_id):
     # check if poll has already been answered 
     user = request.app["user"]
     if answers.coll.find_one({ 
-        "user.$id" : ObjectId(user["_id"]),
-        "poll.$id" : ObjectId(data["poll_id"])
+        "user.$id" : user["_id"],
+        "poll.$id" : data["poll_id"]
     }): 
         return {
             "status" : "ALREADY_ANSWERED"
@@ -159,14 +159,14 @@ def voting__poll_info(poll_id):
     v.validate(data) 
 
     # check if poll does not exist 
-    if not polls.coll.find_one({ "_id" : ObjectId(poll_id )}): 
+    if not polls.coll.find_one({ "_id" : poll_id }): 
         return {
             "status" : "POLL_DOES_NOT_EXIST"
         }
 
 
     # get info about polls 
-    poll = polls.read(ObjectId(poll_id)) 
+    poll = polls.read(poll_id) 
 
     return dumps(poll)
 
@@ -187,13 +187,13 @@ def voting__poll_choices(poll_id):
     v.validate(data) 
 
     # check if poll does not exist 
-    if not polls.coll.find_one({ "_id" : ObjectId(poll_id )}): 
+    if not polls.coll.find_one({ "_id" : poll_id }): 
         return {
             "status" : "POLL_DOES_NOT_EXIST"
         }
 
     # get info about polls 
-    poll = polls.read(ObjectId(poll_id))
+    poll = polls.read(poll_id)
     choices = poll["info"]["choices"]   
 
     return dumps(choices)
@@ -216,7 +216,7 @@ def voting__poll_find_choices(poll_id):
     v.validate(data)
  
     # find in choices 
-    poll = polls.coll.find_one({ "_id" : ObjectId(poll_id) })
+    poll = polls.coll.find_one({ "_id" : poll_id })
     choices = poll["info"]["choices"]
 
     choice_list = [] 

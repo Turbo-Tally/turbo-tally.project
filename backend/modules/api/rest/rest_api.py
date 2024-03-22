@@ -43,8 +43,10 @@ def create_rest_api():
     def hook():
         request.app = {}
         session_id = request.cookies.get("SESSION_ID")
+
         if session_id is not None: 
-            request.app["user"] = auth.get_session_user(session_id)
+            if auth.is_session_logged_in(session_id):
+                request.app["user"] = auth.get_session_user(session_id)
 
     ################
     # SETUP ROUTES #

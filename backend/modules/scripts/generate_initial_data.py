@@ -17,7 +17,7 @@ answers.coll.drop()
 
 # specify generation variables 
 NO_OF_USERS = 1000 
-NO_OF_POLLS = 10000 
+NO_OF_POLLS = 3000
 NO_OF_ANSWERS_PER_POLL = 150 
 
 ##################
@@ -59,4 +59,5 @@ users.coll.insert_many(generated_users_list)
 ##################
 # GENERATE POSTS #
 ################## 
- 
+for i in range(NO_OF_POLLS): 
+    

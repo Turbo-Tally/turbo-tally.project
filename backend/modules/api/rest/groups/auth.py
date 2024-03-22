@@ -447,6 +447,8 @@ def auth__change_password():
     v = Validator(schema) 
     v.validate(data)  
 
+    print("Cookies :", request.cookies)
+
     # check if current password matches
     current_password_hash = user["auth"]["password_hash"] 
     if auth.hash(data["current_password"]) != current_password_hash: 

@@ -14,6 +14,7 @@ class Voting:
     def create_poll(user, data):
         # create normalized data
         norm_data = {
+            "id" : polls.next_id(),
             "info" : {
                 "title" : data["title"], 
                 "choices" : data["choices"]
@@ -54,6 +55,7 @@ class Voting:
 
         # create normalized data
         norm_data = {
+            "_id" : answers.next_id(),
             "user" : {
                 "$ref" : "users", 
                 "$id" : user_id 
