@@ -32,7 +32,12 @@ def generate_random_user():
     data = {
         "info" : {
             "gender" : random.choice(["M", "F"]), 
-            "birthdate" : faker.date_of_birth().strftime(datetime_format),
+            "birthdate" : 
+                datetime.strptime(
+                    faker.date_of_birth(minimum_age=18)\
+                         .strftime(datetime_format),
+                    datetime_format
+                ),
             "region" : selected_region, 
             "province" : random.choice(province_by_regions[selected_region]),
             "username" : faker.simple_profile()["username"],
@@ -45,7 +50,7 @@ def generate_random_user():
             "is_admin" : False, 
             "is_bot" : False
         },
-        "created_at" : datetime.now().strftime(datetime_format)
+        "created_at" : datetime.now()
     }
     
     return data

@@ -38,7 +38,8 @@ def create_admin_user():
     if users.coll.find_one({ "auth.username" : "admin" }) is None:
         auth.create_user({
             "info" : {
-                "birthdate" : "2000-01-01 00:00:00",
+                "birthdate" : 
+                    datetime.strptime("2000-01-01 00:00:00", datetime_format),
                 "gender" : "M", 
                 "region" : "V",
                 "province" : "CAS",

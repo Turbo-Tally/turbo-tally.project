@@ -78,6 +78,12 @@ def create_rest_api():
     from .groups.voting import voting_blueprint 
     app.register_blueprint(voting_blueprint, url_prefix="/voting") 
 
+    ######################
+    # ANALYSIS ENDPOINTS #
+    ###################### 
+    from .groups.analysis import analysis_blueprint 
+    app.register_blueprint(analysis_blueprint, url_prefix="/analysis") 
+
     ############## 
     # EXPOSE APP #
     ##############

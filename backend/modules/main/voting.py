@@ -35,7 +35,7 @@ class Voting:
                 "bot_flags" : {
                     "is_locked" : False
                 },
-                "created_at" : datetime.now().strftime(datetime_format)
+                "created_at" : datetime.now()
             } 
 
             # insert poll in database 
@@ -282,7 +282,6 @@ class Voting:
 
         return summary
 
-
     def clear_polls():
         polls.coll.drop()  
 
@@ -298,5 +297,3 @@ class Voting:
         ]))[0]
 
         return dumps(result)
-
-voting = Voting()

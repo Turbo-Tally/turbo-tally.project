@@ -3,6 +3,7 @@
 # Generate initial data for the database. 
 # 
 import random 
+from faker import Faker
 
 from utils.preloader import preload_default
 
@@ -18,14 +19,18 @@ from modules.common.data_generation import \
 from modules.main.voting import Voting
 
 from time import sleep
+from datetime import datetime, date
+
+faker = Faker()
 
 # specify generation variables 
-NO_OF_USERS = 300 
-NO_OF_POLLS = 1000
+NO_OF_USERS = 2500
+NO_OF_POLLS = 100
 NO_OF_CHOICES_PER_POLL = (4, 10)
-NO_ANSWERS_PER_POLL = (50, 150)
+NO_ANSWERS_PER_POLL = (365, 365 * 3)
 
 def generate(): 
+    print("> Generating Initial Data")
     generate_users()
     generate_polls() 
     generate_answers()
@@ -112,6 +117,7 @@ def generate_answers():
     answers.coll.drop()
 
     answers_list = []
+    
 
     for i in range(n_polls): 
 
@@ -126,6 +132,11 @@ def generate_answers():
 
         for j in range(n_answers): 
             print(f"\t| Generating {j + 1} of {n_answers} answers for poll {i + 1}")
+            answer_date = faker.date_between(
+                date(2022, 1, 1),
+                date(2024, 1, 1)
+            )
+
             answers_list.append({
                 "poll" : {
                     "$ref" : "polls", 
@@ -135,13 +146,25 @@ def generate_answers():
                     "$ref" : "users", 
                     "$id" : random_users[j]["_id"]
                 }, 
-                "answer" : random.choice(poll_choices)["answer"]
+                "answer" : random.choice(poll_choices)["answer"], 
+                "answered_at" : datetime(
+                    answer_date.year,
+                    answer_date.month, 
+                    answer_date.day
+                )
             })
 
             polls.coll.update_one(
                 { "_id" : random_poll["_id"] }, 
                 { "$set" : { "meta.no_of_answers" : n_answers }}
             )
+
+    print("> Sorting answers...")
+    answers_list.sort(key=lambda e: e["answered_at"]) 
+
+    print("> Creating ids...")
+    for i in range(len(answers_list)): 
+        answers_list[i]["_id"] = i + 1
 
     answers.coll.insert_many(answers_list)
 
