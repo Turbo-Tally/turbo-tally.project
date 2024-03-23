@@ -113,12 +113,39 @@ class Voting:
         answered_polls = list(map(lambda x: x["poll"].id, answered_polls))  
         return answered_polls
 
-    def browse_polls(query, sort, filter_, cursor = -1, **kwargs): 
+    def browse_polls(
+        query, sort = "recent", filter_ = "all", cursor = -1, **kwargs
+    ): 
         user =  kwargs.get("user", None)
         answered_polls = [] 
 
         if user is not None:
             answered_polls = Voting.get_answered_polls(user)
+
+        sort_order = None 
+
+        if sort == "recent": 
+            sort_order = {
+                "created_at" : -1
+            }    
+
+        elif sort == "oldest": 
+            sort_order = {
+                "created_at" : 1
+            }
+            
+        elif sort == "most_voted": 
+            sort_order = {
+                "meta.no_of_answers" : -1
+            }
+
+        elif sort == "least_voted": 
+            sort_order = {
+                "meta.no_of_answers" : 1
+            }
+
+        else: 
+            raise Exception("Unknown sort mode [" + sort + "]")
 
         if filter_ == "all": 
             query = {
@@ -127,7 +154,8 @@ class Voting:
             }
 
             poll_count = polls.coll.count_documents(query)
-            sorted_polls = list(polls.coll.find(query).limit(10))
+            sorted_polls = \
+                list(polls.coll.find(query).sort(sort_order).limit(10))
 
             meta = {}
             if poll_count > 0: 
@@ -151,7 +179,9 @@ class Voting:
             }
 
             poll_count = polls.coll.count_documents(query)
-            sorted_polls = list(polls.coll.find(query).limit(10))
+            sorted_polls = \
+                list(polls.coll.find(query).sort(sort_order).limit(10))
+
             
             meta = {}
             if poll_count > 0: 
@@ -172,7 +202,8 @@ class Voting:
             }
 
             poll_count = polls.coll.count_documents(query)
-            sorted_polls = list(polls.coll.find(query).limit(10))
+            sorted_polls = \
+                list(polls.coll.find(query).sort(sort_order).limit(10))
             
             meta = {}
             if poll_count > 0: 
