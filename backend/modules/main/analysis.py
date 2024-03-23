@@ -233,7 +233,7 @@ class Analyzer:
         )
         
 
-        return dumps({ 
+        return { 
             "choice_list" : choice_list,
             "per_day_answers" : answers_per_day, 
             "all_answers" : {
@@ -247,11 +247,101 @@ class Analyzer:
                 "stacked_by_region" : stacked_by_region, 
                 "stacked_by_province" : stacked_by_province
             }
-        })
+        }
 
     def analyze_poll_province(poll_id, province_id): 
         # get choices of polls 
         choice_list  = \
-            list(map(lambda e: e["answer"], choices.coll.find({ "poll.$id" : poll_id})))
+            list(
+                map(lambda e: e["answer"], 
+                choices.coll.find({ "poll.$id" : poll_id}))
+            )
 
-        pass 
+        # get answers by day 
+        answers_per_day = list(Analyzer.denormalized_answer_list(poll_id, [
+            {
+                "$match" : {
+                    "user.info.province" : province_id
+                }
+            },
+            {
+                "$group" : {
+                    "_id" : "$answer_date", 
+                    "answer_count" : { "$sum" : 1 }
+                }
+            }, 
+            {
+                "$project" : {
+                    "_id" : 1, 
+                    "answer_count" : 1
+                }
+            }
+        ]))
+
+        answers_per_day.sort(key=lambda e: e["_id"])
+
+        # get answers by choice
+        answers_by_choice = list(Analyzer.denormalized_answer_list(poll_id, [
+           {
+                "$match" : {
+                    "user.info.province" : province_id
+                }
+            },
+            {
+                "$group" : {
+                    "_id" : "$answer", 
+                    "answer_count" : { "$sum" : 1 }
+                }
+            }
+        ])) 
+
+        answers_by_choice.sort(key=lambda e: e["_id"])
+
+        # get answers stacked by age
+        answers_by_age = list(Analyzer.denormalized_answer_list(poll_id, [
+            {
+                "$match" : {
+                    "user.info.province" : province_id
+                }
+            },   
+            {
+                "$group" : {
+                    "_id" : {
+                        "age" : "$user__age", 
+                        "answer" : "$answer"
+                    }, 
+                    "answer_count" : { "$sum" : 1 }
+                }
+            }
+        ]))
+
+        answers_by_age.sort(key=lambda e: (e["_id"]["age"], e["_id"]["answer"]))
+
+        # get answers stacked by gender
+        answers_by_gender = list(Analyzer.denormalized_answer_list(poll_id, [
+            {
+                "$match" : {
+                    "user.info.province" : province_id
+                }
+            },   
+            {
+                "$group" : {
+                    "_id" : {
+                        "gender" : "$user.info.gender", 
+                        "answer" : "$answer"
+                    }, 
+                    "answer_count" : { "$sum" : 1 }
+                }
+            }
+        ]))
+
+        answers_by_gender.sort(key=lambda e: (e["_id"]["gender"], e["_id"]["answer"]))
+
+
+        return { 
+            "choice_list" : choice_list, 
+            "per_day_answers" : answers_per_day, 
+            "answers_by_choice" : answers_by_choice, 
+            "stacked_by_age" : answers_by_age, 
+            "stacked_by_gender" : answers_by_gender
+        }

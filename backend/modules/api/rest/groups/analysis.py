@@ -5,6 +5,7 @@ from modules.core.logging import Logger
 from datetime import datetime
 from cerberus import Validator  
 from bson.objectid import ObjectId
+from bson.json_util import dumps
 
 import uuid
 import os
@@ -55,7 +56,7 @@ def analysis__poll(poll_id):
     # get results for poll 
     results = Analyzer.analyze_poll(poll_id)    
 
-    return results
+    return dumps(results)
 
 
 # GET /analysis/polls/<poll_id>/province/<province_id>
@@ -64,7 +65,7 @@ def analysis__poll(poll_id):
 def analysis__poll_province(poll_id, province_id):
     # validate arguments 
     poll_id = int(poll_id) 
-    province_id = int(province_id)
+    province_id = province_id
 
     data = {}
     data["poll_id"] = poll_id 
@@ -72,7 +73,7 @@ def analysis__poll_province(poll_id, province_id):
 
     schema = {
         "poll_id" : { "type" : "integer" }, 
-        "province_id" : { "type" : formats["province"] }
+        "province_id" : formats["province"] 
     }
 
     v = Validator(schema)
@@ -90,4 +91,4 @@ def analysis__poll_province(poll_id, province_id):
         data["province_id"]
     )    
 
-    return results
+    return dumps(results)
