@@ -110,6 +110,11 @@ def voting__answer_poll(poll_id):
  
     # check if poll has already been answered 
     user = request.app["user"]
+    if user is None: 
+        return { 
+            "status" : "NOT_LOGGED_IN"
+        }
+    
     if answers.coll.find_one({ 
         "user.$id" : user["_id"],
         "poll.$id" : data["poll_id"]
@@ -132,7 +137,8 @@ def voting__answer_poll(poll_id):
 @voting_blueprint.route("/polls/browse", methods=["GET"])
 def voting__browse_polls(): 
     # validate schema 
-    data = request.args 
+    data = dict(request.args) 
+    data["cursor"] = int(data["cursor"])
     
     schema = {
         "q" : { "type" : "string" }, 
@@ -141,9 +147,7 @@ def voting__browse_polls():
             "allowed" : [ 
                 "recent", 
                 "oldest",
-                "most_voted", 
-                "most_viewed", 
-                "least_viewed",
+                "most_voted"
                 "least_voted"
             ]
         },
@@ -157,7 +161,8 @@ def voting__browse_polls():
         data["q"], 
         data["sort"], 
         data["filter"],
-        data["cursor"]
+        data["cursor"], 
+        user=request.app["user"]
     ) 
 
     polls = dumps(polls)
@@ -197,15 +202,29 @@ def voting__poll_info(poll_id):
 @voting_blueprint.route("/polls/<poll_id>/choices", methods=["GET"])
 def voting__poll_choices(poll_id): 
      # validate data 
-    data = {}
+    data = dict(request.args) 
     data["poll_id"] = int(poll_id)
+    data["cursor"] = int(data.get("cursor", -1))
 
     schema = {
-        "poll_id" : { "type" : "string" }
+        "poll_id" : { "type" : "integer" },
+        "cursor" : { "type" : "integer" }
     } 
 
     v = Validator(schema)
     v.validate(data) 
+
+    if v.errors != {}: 
+        return {
+            "status" : "VALIDATION_ERROR", 
+            "errors" : v.errors
+        }
+
+    # check if poll exists
+    if not Voting.does_poll_exist(data["poll_id"]): 
+        return {
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
 
     # check if poll does not exist 
     if not polls.coll.find_one({ "_id" : data["poll_id"] }): 
@@ -214,7 +233,7 @@ def voting__poll_choices(poll_id):
         }
 
     # get info about polls 
-    choice_list = Voting.get_poll_choices(data["poll_id"]) 
+    choice_list = Voting.get_poll_choices(data["poll_id"], 8, data["cursor"]) 
 
     return dumps(choice_list)
 
@@ -226,17 +245,30 @@ def voting__poll_find_choices(poll_id):
     # data 
     data = dict(request.args) 
     data["poll_id"] = int(poll_id) 
+    data["cursor"] = int(data.get("cursor", -1))
 
     schema = {
         "poll_id" : { "type" : "string" }, 
-        "q" : { "type" : "string" }
+        "q" : { "type" : "string" }, 
+        "cursor" : { "type" : "integer"}
     } 
 
     v = Validator(schema)
     v.validate(data)
+
+    # check if poll exists
+    if not Voting.does_poll_exist(data["poll_id"]): 
+        return {
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
  
     # find in choices 
-    choice_list = Voting.find_in_choices(data["poll_id"], data["q"])
+    choice_list = Voting.find_in_choices(
+        data["poll_id"], 
+        data["q"], 
+        8, 
+        data["cursor"]
+    )
 
     return dumps(choice_list)
 
@@ -245,6 +277,22 @@ def voting__poll_find_choices(poll_id):
 # POST /voting/polls/<poll_id>/summary 
 # 
 @voting_blueprint.route("/polls/<poll_id>/summary", methods=["GET"]) 
-def voting__poll_summary(): 
-    pass 
- 
+def voting__poll_summary(poll_id): 
+    # request arguments 
+    poll_id = int(poll_id) 
+
+    # get poll summary 
+    summary = Voting.get_poll_summary(poll_id)
+
+    return dumps(summary)
+
+
+#
+# GET /voting/random-poll 
+# 
+@voting_blueprint.route("/random-poll", methods=["GET"]) 
+def auth__random_poll():
+    user = request.app["user"] 
+
+    # get random poll_id for user 
+    return Voting.get_random_poll(user)

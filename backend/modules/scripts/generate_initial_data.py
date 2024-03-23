@@ -120,7 +120,8 @@ def generate_answers():
         n_answers = \
             random.randint(NO_ANSWERS_PER_POLL[0], NO_ANSWERS_PER_POLL[1])
         random_users = random.sample(user_pool, n_answers)
-        poll_choices = list(Voting.get_poll_choices(random_poll["_id"]))
+        poll_choices = \
+            list(choices.coll.find({ "poll.$id" : random_poll["_id"]}))
 
 
         for j in range(n_answers): 
@@ -136,6 +137,11 @@ def generate_answers():
                 }, 
                 "answer" : random.choice(poll_choices)["answer"]
             })
+
+            polls.coll.update_one(
+                { "_id" : random_poll["_id"] }, 
+                { "$set" : { "meta.no_of_answers" : n_answers }}
+            )
 
     answers.coll.insert_many(answers_list)
 

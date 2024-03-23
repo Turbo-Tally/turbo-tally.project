@@ -3,6 +3,7 @@
 # Voting module. 
 # 
 from bson.objectid import ObjectId
+from bson.json_util import dumps
 
 from modules.repositories.polls import polls
 from modules.repositories.answers import answers
@@ -26,7 +27,7 @@ class Voting:
                     "$id" : user["_id"]
                 }, 
                 "meta" : {
-
+                    "no_of_answers" : 0
                 },
                 "chart_data" : {
 
@@ -96,44 +97,175 @@ class Voting:
                     "answer" : data["answer"]
                 }, session=session)
 
-            return inserted_id 
-        
+            # increase no. of votes in poll
+            polls.coll.update_one(
+                { "_id" : poll_id }, 
+                { "$inc" : { "meta.no_of_answers" : 1 }},
+                session=session
+            )
 
-    def browse_polls(query, sort, filter_, cursor, **kwargs): 
+            return inserted_id 
+
+    def get_answered_polls(user): 
+        answered_polls = answers.coll.find({
+            "user.$id" : user["_id"]
+        })  
+        answered_polls = list(map(lambda x: x["poll"].id, answered_polls))  
+        return answered_polls
+
+    def browse_polls(query, sort, filter_, cursor = -1, **kwargs): 
+        user =  kwargs.get("user", None)
+        answered_polls = [] 
+
+        if user is not None:
+            answered_polls = Voting.get_answered_polls(user)
+
         if filter_ == "all": 
-            sorted_polls = polls.coll.find({
-                "title" : { "$regex" : query }, 
-            })
+            query = {
+                "title" : { "$regex" : query },
+                "_id" : { "$gt" : cursor }
+            }
+
+            poll_count = polls.coll.count_documents(query)
+            sorted_polls = list(polls.coll.find(query).limit(10))
+
+            meta = {}
+            if poll_count > 0: 
+                meta["next_cursor"] = sorted_polls[-1]["_id"] 
+            meta["count"] = poll_count
+
+            return {
+                "data" : sorted_polls, 
+                "meta" : {
+                    "count" : poll_count, 
+                    "next_cursor" : next_cursor
+                }
+            }
+
 
         elif filter_ == "answered": 
-            sorted_polls = polls.coll.find({
-                "title" : { "$regex" : query }, 
-            })
+            query = {
+                "title" : { "$regex" : query },
+                "_id" : { "$gt" : cursor },
+                "poll.$id" : { "$in" : answered_polls }
+            }
+
+            poll_count = polls.coll.count_documents(query)
+            sorted_polls = list(polls.coll.find(query).limit(10))
+            
+            meta = {}
+            if poll_count > 0: 
+                meta["next_cursor"] = sorted_polls[-1]["_id"] 
+            meta["count"] = poll_count
+            
+            return {
+                "data" : sorted_polls, 
+                "meta" : meta
+            }
+
 
         elif filter_ == "unanswered": 
-            sorted_polls = polls.coll.find({
-                "title" : { "$regex" : query }, 
-            })
+            query = {
+                "title" : { "$regex" : query },
+                "_id" : { "$gt" : cursor },
+                "poll.$id" : { "$nin" : answered_polls }
+            }
+
+            poll_count = polls.coll.count_documents(query)
+            sorted_polls = list(polls.coll.find(query).limit(10))
+            
+            meta = {}
+            if poll_count > 0: 
+                meta["next_cursor"] = sorted_polls[-1]["_id"] 
+            meta["count"] = poll_count
+
+            return {
+                "data" : sorted_polls, 
+                "meta" : meta
+            }
 
         else: 
             raise Exception("Unknown filter mode [" + filter_ + "].")  
 
         return sorted_polls
 
-    def get_poll_choices(poll_id): 
-        choice_list = choices.coll.find({
-            "poll.$id" : poll_id 
-        })
-        return choice_list
+    def get_poll_choices(poll_id, limit = 8, cursor = -1): 
 
-    def find_in_choices(poll_id, q): 
+        choice_count = \
+            choices.coll.count_documents({ "poll.$id" : poll_id })
+
         choice_list = choices.coll.find({
-            "poll.$id" : poll_id, 
-            "answer" : { "$regex" : q }
+            "poll.$id" : poll_id,
+            "_id" : { "$gt" : cursor }
         })
-        return choice_list
+        
+        choice_list = list(choice_list.limit(limit))
+        
+        meta = {}
+        if len(choice_list) > 0: 
+            meta["next_cursor"] = choice_list[-1]["_id"]
+        meta["total"] = choice_count
+
+        return {
+            "data" : choice_list, 
+            "meta" : meta
+        }
+
+    def find_in_choices(poll_id, q, limit = 8, cursor = -1): 
+        search = {
+            "poll.$id" : poll_id, 
+            "answer" : { "$regex" : q }, 
+            "_id" : { "$gt" : cursor }
+        }
+
+        choice_count = \
+            choices.coll.count_documents(search)
+
+        choice_list = list(choices.coll.find(search).limit(limit)) 
+
+        meta = {} 
+        if len(choice_list) > 0: 
+            meta["next_cursor"] = choice_list[-1]["_id"]
+        meta["total"] = choice_count
+
+        return {
+            "data" : choice_list, 
+            "meta" : meta
+        }
+
+    def get_poll_summary(poll_id): 
+        summary = answers.coll.aggregate([
+            {
+                "$match" : {
+                    "poll.$id" : poll_id
+                }
+            },
+            { 
+                "$group" : {
+                    "_id" : "$answer", 
+                    "count" : { "$sum" : 1 }
+                }
+            },
+            { "$limit" : 10 }
+        ])
+
+        return summary
+
 
     def clear_polls():
         polls.coll.drop()  
+
+    def does_poll_exist(poll_id): 
+        return polls.exists(poll_id)
+
+    def get_random_poll(user): 
+        answered_polls = Voting.get_answered_polls(user)
+        
+        result = list(polls.coll.aggregate([
+            { "$match" : { "_id" : { "$nin" : answered_polls }}}, 
+            { "$sample" : { "size" : 1 } }
+        ]))[0]
+
+        return dumps(result)
 
 voting = Voting()
