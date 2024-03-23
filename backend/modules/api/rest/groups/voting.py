@@ -59,6 +59,16 @@ def voting__create_poll():
             "errors" : v.errors
         }
 
+    # check if choices contain duplicates 
+    choices_set = set() 
+
+    for choice in data["choices"]: 
+        if choice in choices_set: 
+            return {
+                "status" : "DUPLICATE_CHOICES"
+            }
+        choices_set.add(choice)
+
     # create poll 
     user = request.app["user"]
 
@@ -76,21 +86,28 @@ def voting__create_poll():
 def voting__answer_poll(poll_id):
     # validate data 
     schema = {
-        "poll_id" : { "type" : "string" }, 
-        "answer"  : formats["poll_choice"]  
+        "poll_id" : { "type" : "integer" }, 
+        "answer"  : formats["poll_choice"] , 
     }
 
     data = request.json 
-    data["poll_id"] = poll_id
+    data["poll_id"] = int(poll_id)
 
     v = Validator(schema) 
     v.validate(data) 
 
     if v.errors != {}: 
         return {
-            "status" : "VALIDATION_ERROR" 
+            "status" : "VALIDATION_ERROR", 
+            "errors" : v.errors
         }
 
+    # check if poll exists 
+    if polls.coll.find_one({ "_id" : data["poll_id"] }) is None:
+        return {
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
+ 
     # check if poll has already been answered 
     user = request.app["user"]
     if answers.coll.find_one({ 
@@ -136,7 +153,12 @@ def voting__browse_polls():
         }
     }
 
-    polls = Voting.browse_polls(data["q"], data["sort"], data["filter"]) 
+    polls = Voting.browse_polls(
+        data["q"], 
+        data["sort"], 
+        data["filter"],
+        data["cursor"]
+    ) 
 
     polls = dumps(polls)
 
@@ -149,24 +171,23 @@ def voting__browse_polls():
 def voting__poll_info(poll_id): 
     # validate data 
     data = {}
-    data["poll_id"] = poll_id
+    data["poll_id"] = int(poll_id)
 
     schema = {
-        "poll_id" : { "type" : "string" }
+        "poll_id" : { "type" : "integer" }
     } 
 
     v = Validator(schema)
     v.validate(data) 
 
     # check if poll does not exist 
-    if not polls.coll.find_one({ "_id" : poll_id }): 
+    if not polls.coll.find_one({ "_id" : data["poll_id"] }): 
         return {
             "status" : "POLL_DOES_NOT_EXIST"
         }
 
-
     # get info about polls 
-    poll = polls.read(poll_id) 
+    poll = polls.read(data["poll_id"]) 
 
     return dumps(poll)
 
@@ -177,7 +198,7 @@ def voting__poll_info(poll_id):
 def voting__poll_choices(poll_id): 
      # validate data 
     data = {}
-    data["poll_id"] = poll_id
+    data["poll_id"] = int(poll_id)
 
     schema = {
         "poll_id" : { "type" : "string" }
@@ -187,16 +208,15 @@ def voting__poll_choices(poll_id):
     v.validate(data) 
 
     # check if poll does not exist 
-    if not polls.coll.find_one({ "_id" : poll_id }): 
+    if not polls.coll.find_one({ "_id" : data["poll_id"] }): 
         return {
             "status" : "POLL_DOES_NOT_EXIST"
         }
 
     # get info about polls 
-    poll = polls.read(poll_id)
-    choices = poll["info"]["choices"]   
+    choice_list = Voting.get_poll_choices(data["poll_id"]) 
 
-    return dumps(choices)
+    return dumps(choice_list)
 
 #
 # GET /voting/polls/<poll_id>/find-choices 
@@ -205,7 +225,7 @@ def voting__poll_choices(poll_id):
 def voting__poll_find_choices(poll_id):
     # data 
     data = dict(request.args) 
-    data["poll_id"] = poll_id 
+    data["poll_id"] = int(poll_id) 
 
     schema = {
         "poll_id" : { "type" : "string" }, 
@@ -216,18 +236,9 @@ def voting__poll_find_choices(poll_id):
     v.validate(data)
  
     # find in choices 
-    poll = polls.coll.find_one({ "_id" : poll_id })
-    choices = poll["info"]["choices"]
+    choice_list = Voting.find_in_choices(data["poll_id"], data["q"])
 
-    choice_list = [] 
-
-    for choice in choices: 
-        if re.search(data["q"], choice) is not None:
-            choice_list.append(choice) 
-        else:   
-            continue
-
-    return choice_list
+    return dumps(choice_list)
 
 
 #

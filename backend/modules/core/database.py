@@ -23,4 +23,5 @@ conn_url = \
 
 # create connection object
 database = os.getenv("MONGODB_DATABASE")
-db = MongoClient(conn_url)[database]
+db_base = MongoClient(conn_url)
+db = db_base[database]

@@ -3,6 +3,7 @@
 # Choices repository 
 # 
 from modules.core.repository import Repository 
+import pymongo
 
 class Choices(Repository): 
     def __init__(self): 
@@ -14,5 +15,6 @@ class Choices(Repository):
         
         # create indices for this repository
         self.coll.create_index("poll.$id", name="poll_id")
+        self.coll.create_index([('answer', pymongo.TEXT)], name="answer")
 
 choices = Choices()

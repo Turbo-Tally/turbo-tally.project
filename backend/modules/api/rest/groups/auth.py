@@ -117,7 +117,7 @@ def auth__sign_up():
             "status" : "INVALID_SMS_CODE"
         }
     
-    auth.clear_verif_code("mobile", data["mobile_no"])
+    auth.clear_verif_code("mobile-verif", data["mobile_no"])
     auth.clear_verif_code("email-verif", data["email"])
 
     # register user in the database 
