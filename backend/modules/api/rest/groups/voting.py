@@ -296,3 +296,4 @@ def auth__random_poll():
 
     # get random poll_id for user 
     return Voting.get_random_poll(user)
+

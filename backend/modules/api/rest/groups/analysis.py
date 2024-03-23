@@ -19,6 +19,7 @@ from modules.common.password_generation import random_password
 from modules.repositories.verif_codes import verif_codes
 from modules.repositories.users import users
 
+from modules.main.voting import Voting
 from modules.main.analysis import Analyzer
 
 ############################
@@ -45,7 +46,48 @@ def analysis__poll(poll_id):
     v = Validator(schema)
     v.validate(data) 
 
+    # check if poll does not exist
+    if not Voting.does_poll_exist(data["poll_id"]):
+        return { 
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
+
     # get results for poll 
     results = Analyzer.analyze_poll(poll_id)    
+
+    return results
+
+
+# GET /analysis/polls/<poll_id>/province/<province_id>
+# 
+@analysis_blueprint.route("/polls/<poll_id>/province/<province_id>", methods=["GET"]) 
+def analysis__poll_province(poll_id, province_id):
+    # validate arguments 
+    poll_id = int(poll_id) 
+    province_id = int(province_id)
+
+    data = {}
+    data["poll_id"] = poll_id 
+    data["province_id"] = province_id
+
+    schema = {
+        "poll_id" : { "type" : "integer" }, 
+        "province_id" : { "type" : formats["province"] }
+    }
+
+    v = Validator(schema)
+    v.validate(data) 
+
+    # check if poll does not exist
+    if not Voting.does_poll_exist(data["poll_id"]):
+        return { 
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
+
+    # get results for poll 
+    results = Analyzer.analyze_poll_province(
+        data["poll_id"], 
+        data["province_id"]
+    )    
 
     return results

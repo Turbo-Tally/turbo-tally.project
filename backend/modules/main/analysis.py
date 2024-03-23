@@ -97,7 +97,8 @@ class Analyzer:
         
     def analyze_poll(poll_id):
         # get choices of polls 
-        choice_list  = choices.coll.find({ "poll.$id" : poll_id})
+        choice_list  = \
+            list(map(lambda e: e["answer"], choices.coll.find({ "poll.$id" : poll_id})))
 
         # get answers of polls
         answers_per_day = list(Analyzer.denormalized_answer_list(poll_id, [
@@ -198,16 +199,59 @@ class Analyzer:
             (e["_id"]["region"], e["_id"]["answer"])
         )
 
+        #
+        # BY PROVINCE 
+        #
+        
+        # get total answers by province
+        answers_by_province = list(Analyzer.denormalized_answer_list(poll_id, [
+            {
+                "$group" : {
+                    "_id" : "$user.info.province", 
+                    "answer_count" : { "$sum" :  1 }
+                }
+            }
+        ]))
+
+        answers_by_province.sort(key=lambda e: e["_id"])
+
+        # get stacked answers by province 
+        stacked_by_province = list(Analyzer.denormalized_answer_list(poll_id, [
+            {
+                "$group" : {
+                    "_id" : {
+                        "province" : "$user.info.province", 
+                        "answer" : "$answer"
+                    }, 
+                    "answer_count" : { "$sum" : 1 }
+                }
+            }
+        ]))
+
+        stacked_by_province.sort(key=lambda e: 
+            (e["_id"]["province"], e["_id"]["answer"])
+        )
+        
+
         return dumps({ 
+            "choice_list" : choice_list,
             "per_day_answers" : answers_per_day, 
             "all_answers" : {
                 "by_choice" : answers_by_choice, 
-                "by_age" : answers_by_age
+                "by_age" : answers_by_age, 
+                "by_province" : answers_by_province
             },
             "by_category" : {
                 "stacked_by_age" : stacked_by_age,
                 "stacked_by_gender" : stacked_by_gender,
-                "stacked_by_region" : stacked_by_region
+                "stacked_by_region" : stacked_by_region, 
+                "stacked_by_province" : stacked_by_province
             }
         })
 
+    def analyze_poll_province(poll_id, province_id): 
+        # get choices of polls 
+        choice_list  = \
+            list(map(lambda e: e["answer"], choices.coll.find({ "poll.$id" : poll_id})))
+
+        pass 
