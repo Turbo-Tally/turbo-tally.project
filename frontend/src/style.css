@@ -82,6 +82,7 @@ select {
 }
 
 .error {
+    margin-top: 5px;
     border: 1.5px solid red !important;
 }
 

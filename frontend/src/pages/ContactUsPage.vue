@@ -5,7 +5,8 @@ import { Form } from "@/utils/form.js"
 const form = new Form()
 
 form.addField("email",  (value) => {
-    return true
+    const re = new RegExp("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+    return re.test(value)
 })
 
 form.addField("subject", (value) => {
@@ -28,9 +29,14 @@ function submit() {
     <div class="contact-us-page"> 
         <h1>Contact Us</h1>
 
+        Allow Submission : {{ form.allowSubmission }} <br />
+        Values : {{ form.values() }} <br />
+        Errors : {{ form.errors() }} <br />
         Empty Fields : {{ form.containsEmptyFields() }}  <br /> 
         Errors : {{ form.hasErrors() }} <br />
-
+        E-mail Invalid: {{ form.hasError('email') }} <br /> 
+        Subject Invalid: {{ form.hasError('subject') }} <br /> 
+        Message Invalid: {{ form.hasError('message') }} <br /> 
 
         <div class="contact-us-form">
             <table> 
@@ -40,8 +46,11 @@ function submit() {
                         <input 
                             type="text" 
                             @change="form.handle('email')"
-                            v-model="form.inputs.email.value" 
+                            v-model="form.inputs.value.email" 
                         />
+                        <div class="error" v-if="form.hasError('email')"> 
+                            Invalid e-mail.
+                        </div> 
                     </td>
                 </tr> 
                 <tr>
@@ -50,8 +59,11 @@ function submit() {
                         <input
                             type="text" 
                             @change="form.handle('subject')"
-                            v-model="form.inputs.subject.value" 
+                            v-model="form.inputs.value.subject" 
                         />
+                        <div class="error" v-if="form.hasError('subject')"> 
+                            Invalid subject.
+                        </div> 
                     </td>
                 </tr> 
                 <tr>
@@ -59,8 +71,11 @@ function submit() {
                     <td>
                         <textarea 
                             @change="form.handle('message')"
-                            v-model="form.inputs.message.value" 
+                            v-model="form.inputs.value.message" 
                         />
+                        <div class="error" v-if="form.hasError('message')"> 
+                            Invalid message.
+                        </div> 
                     </td>
                 </tr> 
             </table> 

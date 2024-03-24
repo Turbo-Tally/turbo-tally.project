@@ -1,41 +1,56 @@
-import { ref, watch } from "vue"
+import { ref, watch, nextTick } from "vue"
 
 export class Form 
 {
     constructor() {
-        this.inputs = {}
+        this.inputs = ref({})
         this._validators = {}
-        this._errors = {}
+        this._errors = ref({})
         this.allowSubmission = ref(true)
     }
 
     requireAll(isRequired) {
-        if(isRequired) {
-            this.disableSubmission()  
-            const self = this
-            
-            for(let input of Object.values(this.inputs)) {
-                watch(input, () => {
-                    const containsEmptyFields = self.containsEmptyFields()
-                    const hasErrors = self.hasErrors() 
-                    if(containsEmptyFields || hasErrors) {
-                        self.disableSubmission() 
-                    } else {
-                        self.enableSubmission()
-                    }
-                })
-            }
+        const self = this
+        if(!isRequired) {
+            self.enableSubmission()
         } else {
-            this.enableSubmission() 
+            self.disableSubmission()
+            self.guardSubmission()
         }
     }
 
+    handleChange() {
+        let self = this
+        if(!self.containsEmptyFields() && !self.hasErrors()) {
+            self.allowSubmission.value = true
+        } else {
+            self.allowSubmission.value = false
+        }
+    }
+
+    guardSubmission() {
+        const self = this
+        watch(self.inputs, () => {
+            self.handleChange()
+        }, {
+            deep: true
+        })
+    }
+
+    values() {
+        const values = {} 
+        for(let key in this.inputs.value) {
+            values[key] = this.inputs.value[key]
+        }
+        return values
+    }
+
     addField(input, validate) {
-        this.inputs[input] = ref(null)
+        this.inputs.value[input] = null
         this._validators[input] = (value) => {
             return validate(value)
         }
-        this._errors[input] = false
+        this._errors.value[input] = false
     }
 
     field(input) {
@@ -54,8 +69,12 @@ export class Form
         return this._errors
     }
 
+    hasError(field) {
+        return this._errors.value[field]
+    }
+
     containsEmptyFields() {
-        const values = Object.values(this.inputs).map(x => x.value)
+        const values = Object.values(this.inputs.value).map(x => x)
         for(let value of values) {
             if(value == null || value == "") {
                 return true 
@@ -65,7 +84,7 @@ export class Form
     }
 
     hasErrors() {
-        const errors = Object.values(this._errors) 
+        const errors = Object.values(this._errors.value)
         for(let error of errors) {
             if(error) {
                 return true 
@@ -75,9 +94,9 @@ export class Form
     }
 
     handle(field) {
-        const fieldValue = this.inputs[field].value 
-        this._errors[field] = !this._validators[field](fieldValue)
-        console.log(this._errors)
+        const fieldValue = this.inputs.value[field] 
+        this._errors.value[field] = !this._validators[field](fieldValue)
+        this.handleChange()
     }
 
     enableSubmission() {
