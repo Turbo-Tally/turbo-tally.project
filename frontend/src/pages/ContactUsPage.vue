@@ -10,11 +10,11 @@ form.addField("email",  (value) => {
 })
 
 form.addField("subject", (value) => {
-    return true
+    return value.length > 5 && value.length < 255   
 }) 
 
 form.addField("message", (value) => {
-    return true
+    return value.length > 10 && value.length < 1024
 })
 
 form.requireAll(true)

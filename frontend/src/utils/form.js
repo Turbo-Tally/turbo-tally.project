@@ -110,5 +110,5 @@ export class Form
     canSubmit() {
         return this.allowSubmission.value
     }
-}
 
+}
