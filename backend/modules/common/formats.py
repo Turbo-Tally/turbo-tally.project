@@ -19,7 +19,7 @@ formats["username"] =  {
     "minlength" : 3, 
     "maxlength" : 20, 
     "regex" : 
-        "^[A-Za-z0-9\.\-\_]+$"
+        "^[A-Za-z0-9\.\_]+$"
 }
 
 # email validator 

@@ -84,6 +84,12 @@ def create_rest_api():
     from .groups.analysis import analysis_blueprint 
     app.register_blueprint(analysis_blueprint, url_prefix="/analysis") 
 
+    ####################
+    # COMMON ENDPOINTS #
+    #################### 
+    from .groups.common import common_blueprint 
+    app.register_blueprint(common_blueprint, url_prefix="/common")
+
     ############## 
     # EXPOSE APP #
     ##############

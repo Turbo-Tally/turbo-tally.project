@@ -10,6 +10,7 @@ import PollResultsPage from "@/pages/PollResultsPage.vue"
 import PollsPage from "@/pages/PollsPage.vue" 
 import SignUpPage from "@/pages/SignUpPage.vue"
 import AnswerPollPage from "@/pages/AnswerPollPage.vue"
+import ContactUsPage from "@/pages/ContactUsPage.vue"
 
 /**
  * Make router
@@ -37,6 +38,7 @@ function defineRoutes() {
         { path: "/poll/create", component: CreatePollPage }, 
         { path: "/poll/:pollId/answer", component: AnswerPollPage }, 
         { path: "/polls", component: PollsPage },
-        { path: "/polls/:pollId/report", component: PollResultsPage }
+        { path: "/polls/:pollId/report", component: PollResultsPage }, 
+        { path: "/contact-us", component: ContactUsPage }
     ]
 }

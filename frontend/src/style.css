@@ -25,7 +25,13 @@ input[type="number"] {
     -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
     -moz-box-sizing: border-box;    /* Firefox, other Gecko */
     box-sizing: border-box;         /* Opera/IE 8+ */
+    border-radius: 5px;
 }
+
+
+.datepicker {
+    border-radius: 5px;
+}   
 
 .centered {
     display: flex; 
@@ -73,4 +79,22 @@ select {
 select {
     width: 100%;
     text-align: center;
+}
+
+.error {
+    border: 1.5px solid red !important;
+}
+
+.error-message {
+    border: 1px solid red;
+    border-radius: 5px; 
+    margin-top: 10px;
+    padding: 10px;
+    color: black;
+    text-align: center;
+    background-color: rgb(245, 165, 165)
+}
+
+button[disabled] {
+    opacity: 0.5;
 }

@@ -1,7 +1,21 @@
+<script setup> 
+    import { defineProps, onMounted, ref, watch, defineEmits } from "vue"
+
+    const emit = defineEmits([ "change" ])
+
+    const birthdate = ref();
+
+    watch(birthdate, () => {
+        emit("change", birthdate.value)
+    })
+
+</script> 
+
 <template> 
     <div class="datepicker">
         <input 
             type="date" 
+            v-model="birthdate"
         />
     </div>
 </template> 
