@@ -1,9 +1,11 @@
 <script setup> 
     import { defineProps, onMounted, ref, watch, defineEmits } from "vue"
+    import { Helpers } from "@/utils/helpers.js"
 
     const emit = defineEmits([ "change" ])
+    const props = defineProps([ "initial" ])
 
-    const birthdate = ref();
+    const birthdate = ref(Helpers.dateString(props.initial));
 
     watch(birthdate, () => {
         emit("change", birthdate.value)

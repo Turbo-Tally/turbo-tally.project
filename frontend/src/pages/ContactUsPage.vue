@@ -4,9 +4,14 @@ import { Form } from "@/utils/form.js"
 
 const form = new Form()
 
-form.addField("email",  (value) => {
-    const re = new RegExp("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
-    return re.test(value)
+form.addField("email",  {
+    validEmail : async (value) => {
+        const re = new RegExp("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+        return re.test(value)
+    }, 
+    isGmail : async(value) => {
+        return value.includes("@gmail.com")
+    }
 })
 
 form.addField("subject", (value) => {
@@ -48,8 +53,11 @@ function submit() {
                             @change="form.handle('email')"
                             v-model="form.inputs.value.email" 
                         />
-                        <div class="error" v-if="form.hasError('email')"> 
+                        <div class="error" v-if="form.hasError('email', 'validEmail')"> 
                             Invalid e-mail.
+                        </div> 
+                        <div class="error" v-if="form.hasError('email', 'isGmail')"> 
+                            Must be a valid g-mail address.
                         </div> 
                     </td>
                 </tr> 

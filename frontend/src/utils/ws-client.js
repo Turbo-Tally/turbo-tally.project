@@ -1,6 +1,6 @@
 import { io } from "socket.io-client" 
 
-export const wsClient = io("ws://172.28.2.3:80");
+export const wsClient = io("ws://localhost:30001");
 
 wsClient.on("connect", () => {
     console.log("> WS Client : Connected to back-end server.")

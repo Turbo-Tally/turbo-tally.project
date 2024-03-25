@@ -7,51 +7,186 @@ import { onMounted, ref, watch } from "vue"
 import { httpClient } from "@/utils/http-client.js"
 
 import { Form } from "@/utils/form.js"
+import { Validators } from "@/utils/validators.js"
+import { Helpers }  from "@/utils/helpers.js"
+import { Locations } from "@/utils/locations.js"
 
-/** 
- * Set-up Regions & Province Field
+import RegionPicker from "@/components/locations/RegionPicker.vue"
+import ProvincePicker from "@/components/locations/ProvincePicker.vue"
+
+/**
+ * Set-up Sub-Page 
  */
-
-const regionsList = ref()
-const provincesList = ref()
-const selectedRegionId = ref()
-
-async function fetchRegionsList() {
-    console.log("> Fetching regions list...")
-    const regionsResponse = await httpClient.get("/common/regions") 
-    const regionsData = regionsResponse.data
-    regionsList.value = regionsData
-    console.log("\t| Fetched regions list.")
-}
-
-async function fetchProvinceList(regionId) {
-    console.log("> Fetching province list for " + regionId.value + "...")
-    const endpoint =  "/common/region/" + regionId.value + "/provinces"
-    const provincesResponse = await httpClient.get(endpoint) 
-    const provincesData = provincesResponse.data 
-    provincesList.value = provincesData 
-    console.log("\t| Fetched provinces list.")
-}
-
-watch(selectedRegionId, async () => {
-   inputs.value.region = selectedRegionId
-   fetchProvinceList(selectedRegionId)
-})
+const subPage = ref("form")         // form or success message
 
 /**
  * Create Form
  */
-const form = new Form({
+const form = new Form()
 
+form.addField("username", {
+    validFormat : async (value) => {
+        return Validators.username(value) 
+    }, 
+    existsAlready : async (value) => {
+        return !(await Validators.userExists("auth.username", value))
+    }
 })
 
-console.log(form)
+form.addField("email",  {
+    validFormat : async (value) => {
+        return Validators.email(value)
+    },
+    existsAlready : async (value) => {
+        return !(await Validators.userExists("auth.email", value))
+    }
+})
+
+form.addField("password", async (value) => {
+    return Validators.password(value)
+})
+
+form.addField("confirmPassword", async (value) => {
+    return value == form.inputs.value.password
+})
+
+form.addField("birthdate", async (value) => {
+    return Validators.birthdate(value)
+})
+
+form.addField("gender", async (value) => {
+    return Validators.gender(value)
+})
+
+form.addField("region", async (value) => {
+    return true
+})
+
+form.addField("province", async (value) => {
+    return true 
+})
+
+form.addField("emailCode", async (value) => {
+    const validCode = Validators.verifCode(value) 
+    const correctCode = await Validators.correctCode(
+        "email-verif", 
+        form.inputs.value.email, 
+        value
+    )
+    return validCode && correctCode
+})
+
+form.addField("mobileNo", {
+    validFormat : async (value) => {
+        const validCode = Validators.mobileNo(value) 
+        return true 
+    },
+    existsAlready : async (value) => {
+        return !(await Validators.userExists("info.mobile_no", value))
+    }
+})
+
+form.addField("smsCode", async (value) => {
+    const validCode = Validators.verifCode(value) 
+    const correctCode = await Validators.correctCode(
+        "mobile-verif", 
+        form.inputs.value.mobileNo, 
+        value
+    )
+    return validCode && correctCode
+})
+
+form.addField("termsAndConditions", async (value) => {
+    return true 
+})
+
+form.addField("privacyPolicy", async (value) => {
+    return true
+})
+
+form.requireAll(true)
+
+form.isSubmitting = ref(false)
+
+
+/**
+ * Set-up Default Values
+ */
+form.inputs.value.username = "johndoe"
+form.inputs.value.email = "johndoe@example.com" 
+form.inputs.value.password = "@JohnDoe1234();" 
+form.inputs.value.confirmPassword = "@JohnDoe1234();" 
+form.inputs.value.birthdate = "1990-01-01"
+form.inputs.value.gender = "M"
+form.inputs.value.region = "V"
+form.inputs.value.province = "CAS"
+// form.inputs.value.emailCode = "289899" 
+form.inputs.value.mobileNo = "09123456789"
+// form.inputs.value.smsCode = "324789"
+form.inputs.value.termsAndConditions = true 
+form.inputs.value.privacyPolicy = true
+
+
+/** 
+ * Handle Sign Up Action 
+ */
+async function handleSignUp() {
+    // disable submission 
+    form.disableSubmission() 
+    form.isSubmitting.value = true 
+
+    // fix data
+    const data = form.json()
+    data["birthdate"] = Helpers.normalizeDate(data["birthdate"])
+    
+    // send sign-up request
+    const signUpResponse = await httpClient.post("/auth/sign-up", data)
+    const signUpStatus = signUpResponse.data["status"]
+    
+    if(signUpStatus == "REGISTERED") {
+        // reenable form 
+        subPage.value = "sign-up-success"
+        form.enableSubmission() 
+    } else {
+        alert("Server Error")
+    }
+}
+
+/** 
+ * Request E-mail Code 
+ */
+async function requestEmailCode() {
+    const response = 
+        await httpClient.get("/auth/generate-verif-code", {
+            params : {
+                "type" : "email-verif", 
+                "handle" : form.inputs.value.email
+            }
+        })
+    const data = response.data
+    form.inputs.value.emailCode = data["code"]["value"]
+}
+
+/** 
+ * Request SMS Code 
+ */
+async function requestSMSCode() {
+    const response = 
+        await httpClient.get("/auth/generate-verif-code", {
+            params : {
+                "type" : "mobile-verif", 
+                "handle" : form.inputs.value.mobileNo
+            }
+        })
+    const data = response.data
+    form.inputs.value.smsCode = data["code"]["value"]
+}
+
 
 /**
  * On Mounted Hook 
  */
 onMounted(async () => {
-    await fetchRegionsList()
 })
 
 </script> 
@@ -59,113 +194,187 @@ onMounted(async () => {
 <template> 
     <div class="sign-up-page"> 
         <DefaultLayout>
-            <div class="sign-up-form">
+            <div 
+                v-if="subPage == 'form'" 
+                class="sign-up-form"
+            >
                 <div class="title"> 
                     <h1>Sign Up</h1>
                 </div> 
                 <div class="form">
+                    <!-- {{ form.errors() }}
+                    {{ form.values() }} <br /> <br />
+                    {{ form.errors() }} <br /><br /> 
+                    Has Errors : {{ form.hasErrors() }} <br /> <br /> 
+                    Empty Fields: {{ form.containsEmptyFields() }} <br /><br /> -->
                     <div class="form-item">
                         <input 
                             class="username"
                             type="text"
                             placeholder="Username"
-                        /> 
+                            @change="form.handle('username')"
+                            v-model="form.inputs.value.username"
+                        />  
+                        <div 
+                            class="error-message" 
+                            v-if="form.hasError('username', 'existsAlready')"
+                        >   
+                            User already exists.
+                        </div> 
+                        <div 
+                            class="error-message" 
+                            v-else-if="form.hasError('username', 'validFormat')"
+                        >   
+                            Username must be composed of only letters, numbers, 
+                            dots, and underscores.
+                        </div>
                     </div> 
                     <div class="form-item">
                         <input 
                             class="email"
                             type="text"
                             placeholder="E-mail Address"
+                            @change="form.handle('email')"
+                            v-model="form.inputs.value.email"
                         /> 
+                        <div 
+                            class="error-message" 
+                            v-if="form.hasError('email', 'existsAlready')"
+                        >   
+                            E-mail already exists.
+                        </div> 
+                        <div 
+                            class="error-message" 
+                            v-else-if="form.hasError('email', 'validFormat')"
+                        >   
+                            Must be a valid e-mail address in the format: 
+                            <i>user@example.com</i> 
+                        </div> 
                     </div> 
                     <div class="form-item">
                         <input 
                             class="password"
                             type="password"
                             placeholder="Password"
+                            @change="form.handle('password')"
+                            v-model="form.inputs.value.password"
                         />
+                        <div 
+                            class="error-message" 
+                            v-if="form.hasError('password')"
+                            style="text-align: left"
+                        >   
+                            Password must be composed of at least:
+                            <ul> 
+                                <li>8 to 255 characters</li>
+                                <li>1 big letter</li> 
+                                <li>1 small letter</li> 
+                                <li>1 number</li> 
+                                <li>1 symbol e.g. (, ), \, etc. </li>
+                            </ul> 
+                        </div> 
                     </div> 
                     <div class="form-item">
                         <input 
                             class="confirm-password"
                             type="password"
                             placeholder="Confirm Password"
+                            @change="form.handle('confirmPassword')"
+                            v-model="form.inputs.value.confirmPassword"
                         /> 
-s                    </div> 
+                        <div 
+                            class="error-message" 
+                            v-if="form.hasError('confirmPassword')"
+                        >   
+                            Passwords do not match.
+                        </div> 
+                    </div> 
                     <div class="birthdate form-item-flex">
                         <div class="form-subitem label">
                             <b>Birthdate</b>
                         </div>
-                        <div class="form-subitem datepicker">
+                        <div class="form-subitem picker">
                             <DatePicker 
                                 class="birthdate"
-                                :class="{ 'error' : errors.birthdate }"
+                                :initial="form.inputs.value.birthdate"
+                                @change="(value) => {
+                                    form.handle('birthdate')
+                                    form.inputs.value.birthdate = value
+                                }"
                             />
+                            <div 
+                                class="error-message" 
+                                v-if="form.hasError('birthdate')"
+                            >   
+                                Must be at least 18 years old to sign up.
+                            </div> 
                         </div>
                     </div> 
                     <div class="birthdate form-item-flex">
                         <div class="form-subitem label">
                             <b>Gender</b>
                         </div>
-                        <div class="form-subitem datepicker">
+                        <div class="form-subitem picker">
                             <select
                                 class="gender"
-                                v-model="inputs.gender"
-                                :class="{ 'error' : errors.gender }"
+                                v-model="form.inputs.value.gender"
+                                @change="form.handle('gender')"
                             >    
                                 <option value="M">Male</option> 
                                 <option value="F">Female</option>
-                            </select> 
+                            </select>  
                         </div>
                     </div>
                     <div class="birthdate form-item-flex">
                         <div class="form-subitem label">
                             <b>Region</b>
                         </div>
-                        <div class="form-subitem datepicker">
-                            <select 
-                                class="region" 
-                                v-model="selectedRegionId"
-                            >    
-                                <option 
-                                    v-for="region in regionsList"
-                                    :key="region['key']"
-                                    :value="region['key']"
-                                >
-                                    {{ region.key}} - {{ region.long }}
-                                </option> 
-                            </select>
+                        <div class="form-subitem picker">
+                            <RegionPicker
+                                :initial="form.inputs.value.region"
+                                @change="(regionKey) => {
+                                    form.handle('region')
+                                    form.inputs.value.region = regionKey
+                                }"
+                            /> 
                         </div>
                     </div> 
                     <div class="birthdate form-item-flex">
                         <div class="form-subitem label">
                             <b>Province</b>
                         </div>
-                        <div class="form-subitem datepicker">
-                            <select 
-                                class="province"
-                            >    
-                                <option
-                                    v-for="province in provincesList"
-                                    :key="province['key']" 
-                                    :value="province['key']"
-                                >   
-                                    {{ province["name"] }}
-                                </option> 
-                            </select>
+                        <div class="form-subitem picker">
+                            <ProvincePicker 
+                                :initial="form.inputs.value.province"
+                                :region="form.inputs.value.region"
+                                @change="(provinceKey) => {
+                                    form.handle('province') 
+                                    form.inputs.value.province = provinceKey
+                                }"
+                            />
                         </div>
                     </div> 
                     <div class="email-code form-item-flex">
                         <div class="form-subitem email-verification-code">
                             <input 
                                 class="email-code"
-                                type="number" 
+                                type="text" 
                                 placeholder="E-mail Code"
-                                v-model="inputs.emailCode"
+                                @change="form.handle('emailCode')"
+                                v-model="form.inputs.value.emailCode"
                             />
+                            <div 
+                                class="error-message" 
+                                v-if="form.hasError('emailCode')"
+                            >   
+                                Invalid code.
+                            </div> 
                         </div>
                         <div class="form-subitem send-email-code">
-                            <button class="wide-btn">
+                            <button 
+                                class="wide-btn"
+                                @click="requestEmailCode()"
+                            >
                                 Send E-mail Code
                             </button>
                         </div>
@@ -175,20 +384,44 @@ s                    </div>
                             class="mobile-no"
                             type="text"
                             placeholder="Mobile Number"
-                            v-model="inputs.mobileNo"
+                            @change="form.handle('mobileNo')"
+                            v-model="form.inputs.value.mobileNo"
                         /> 
+                        <div 
+                            class="error-message" 
+                            v-if="form.hasError('mobileNo', 'existsAlready')"
+                        >   
+                            Phone used by another person already.
+                        </div> 
+                        <div 
+                            class="error-message" 
+                            v-else-if="form.hasError('mobileNo', 'validFormat')"
+                        >   
+                            Must be a valid Philippine phone number: 
+                            e.g. <b>09123456789</b>
+                        </div> 
                     </div> 
                     <div class="sms-code form-item-flex">
                         <div class="form-subitem mobile-verification-code">
                             <input 
                                 class="sms-code"
-                                type="number" 
+                                type="text" 
                                 placeholder="SMS Code"
-                                v-model="inputs.smsCode"
+                                @change="form.handle('smsCode')"
+                                v-model="form.inputs.value.smsCode"
                             />
+                            <div 
+                                class="error-message" 
+                                v-if="form.hasError('smsCode')"
+                            >   
+                                Invalid code.
+                            </div> 
                         </div>
                         <div class="form-subitem send-sms-code">
-                            <button class="wide-btn">
+                            <button 
+                                class="wide-btn"
+                                @click="requestSMSCode()"
+                            >
                                 Send SMS Code
                             </button>
                         </div>
@@ -200,7 +433,7 @@ s                    </div>
                         <div class="form-subitem checkbox">
                             <input 
                                 type="checkbox" 
-                                v-model="inputs.tac"
+                                v-model="form.inputs.value.termsAndConditions"
                             />
                         </div>
                     </div>
@@ -211,7 +444,7 @@ s                    </div>
                         <div class="form-subitem checkbox">
                             <input 
                                 type="checkbox" 
-                                v-model="inputs.pp"
+                                v-model="form.inputs.value.privacyPolicy"
                             />
                         </div>
                     </div>
@@ -220,12 +453,25 @@ s                    </div>
                     <button 
                         class="wide-btn"
                         @click="handleSignUp()" 
-                        :disabled="!allowSubmission"
+                        :disabled="!form.canSubmit()"
                     >
-                        Sign Up
+                        {{ 
+                            form.isSubmitting.value ? 
+                                "Submitting..." : "Submit"
+                        }}
                     </button>
                 </div> 
             </div>
+            <div 
+                v-else-if="subPage == 'sign-up-success'" 
+                class="sign-up-success"
+            >
+                <div class="text">
+                    <b>You have successfully signed up</b>
+                    <br /> 
+                    You may now <router-link to="/log-in">log in</router-link>
+                </div>
+            </div> 
         </DefaultLayout>
     </div> 
 </template> 
@@ -325,12 +571,29 @@ s                    </div>
                 margin-top: 20px;
                 display: flex;
                 width: 100%;
+            }
 
+            .picker {
+                flex: 1;
             }
         }
 
-        
+        .sign-up-success {
+            background-color: rgb(196, 227, 228);
+            color: black;
+            border: 1px solid rgb(50, 50, 50);
+            padding: 20px; 
+            display: flex; 
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            width: 512px;
+            margin: 0 auto;
+        }    
 
+        a {
+            color: black
+        }
     }
 
 </style>

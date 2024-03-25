@@ -15,7 +15,11 @@ schemas["registration_input"] = {
     "province"   : formats["province"],
     "mobile_no"  : formats["ph_mobile_no"], 
     "sms_code"   : formats["verif_code"], 
-    "email_code" : formats["verif_code"]
+    "email_code" : formats["verif_code"], 
+
+    "confirm_password" : { "type" : "string" }, 
+    "privacy_policy" : { "type" : "boolean" }, 
+    "terms_and_conditions" : { "type" : "boolean" }
 }   
 
 require_all(schemas["registration_input"])

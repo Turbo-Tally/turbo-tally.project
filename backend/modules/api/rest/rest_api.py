@@ -28,7 +28,7 @@ def create_rest_api():
         template_folder  = TEMPLATES_FOLDER
     ) 
 
-    # allow cross origin request
+    # allow cross origin requests
     CORS(
         app,
         supports_credentials = True, 
@@ -89,6 +89,14 @@ def create_rest_api():
     #################### 
     from .groups.common import common_blueprint 
     app.register_blueprint(common_blueprint, url_prefix="/common")
+
+    #################
+    # 404 NOT FOUND #
+    ################# 
+    @app.errorhandler(404) 
+    def not_found(e): 
+        return "404 - Not Found"
+
 
     ############## 
     # EXPOSE APP #

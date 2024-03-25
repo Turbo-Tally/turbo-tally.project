@@ -165,9 +165,9 @@ def auth__generate_code():
 # 
 @auth_blueprint.route("/verify-code", methods=["POST"])
 def auth__verify_code():
-    type_ = request.args.get("type")
-    handle = request.args.get("handle")
-    code = request.args.get("code") 
+    type_ = request.json.get("type")
+    handle = request.json.get("handle")
+    code = request.json.get("code") 
 
     # check if code is correct 
     is_valid = auth.check_verif_code(type_, handle, code)
@@ -178,7 +178,6 @@ def auth__verify_code():
             "message" : "Code entered was invalid."
         } 
     
-
     return {
         "status" : "VALID_CODE", 
         "message" : "Code entered was valid."
@@ -232,9 +231,18 @@ def auth__user__check_if_exists():
 #  
 @auth_blueprint.route("/session-id", methods=["GET"]) 
 def auth__session_id(): 
-    res = make_response()
-    res.set_cookie("SESSION_ID", value=str(uuid.uuid4()))
-    return res
+    if request.cookies.get("SESSION_ID") is None:
+        res = make_response()
+        res.set_cookie(
+            "SESSION_ID", 
+            value=str(uuid.uuid4()), 
+            httponly=True,
+            samesite=None
+        )
+        return res
+    return {
+        "status" : "SESSION_ALREADY_SET"
+    }
 
 #
 # POST /auth/log-in 
@@ -294,14 +302,14 @@ def auth__user():
     }
 
 #
-# GET /auth/logout 
+# GET /auth/log-out 
 # 
 @auth_blueprint.route("/log-out", methods=["GET"])
 def auth__logout(): 
     user = request.app["user"] 
     auth.clear_session_user(request.cookies.get("SESSION_ID"))
     return {
-        "status" : "USER_LOGGED_OUT"
+        "status" : "LOGGED_OUT"
     }
 
 #
@@ -429,7 +437,7 @@ def auth__change_email():
     }
 
 
-
+#
 # POST /auth/change-password
 # 
 @auth_blueprint.route("/change-password", methods=["POST"]) 
@@ -472,3 +480,69 @@ def auth__change_password():
     }
 
 
+#
+# GET /auth/check-exists
+#  
+@auth_blueprint.route("/check-exists", methods=["GET"])
+def auth__check_user_exists():
+    # validate inputs 
+    data = request.args 
+    
+    schema = {
+        "handle" : { 
+            "type" : "string",
+            "allowed" : [ 
+                "auth.email", 
+                "auth.username", 
+                "info.mobileNo" 
+            ]
+        }, 
+        "value" :  { 
+            "type" : "string"
+        }
+    }
+
+    v = Validator(schema) 
+    v.validate(data)
+
+    # check if handle exists
+    handle = data["handle"] 
+    value = data["value"]
+
+    if users.coll.find_one({ handle : value }) is not None: 
+        return  { 
+            "status" : "HANDLE_EXISTS"
+        }
+    else:   
+        return {
+            "status" : "HANDLE_DOES_NOT_EXIST"
+        }
+
+
+#
+# POST /auth/check-password
+# 
+@auth_blueprint.route("/check-password", methods=["POST"]) 
+def auth__check_password(): 
+    data = request.json
+    user = request.app["user"]
+
+    # define schema for validation
+    schema = {
+        "password" : { "type" : "string" }
+    }
+
+    # validator 
+    v = Validator(schema) 
+    v.validate(data)  
+
+    # check if current password matches
+    current_password_hash = user["auth"]["password_hash"] 
+    if auth.hash(data["password"]) != current_password_hash: 
+        return {
+            "status" : "INVALID_PASSWORD"
+        }
+
+    return {
+        "status" : "PASSWORD_CORRECT"
+    }

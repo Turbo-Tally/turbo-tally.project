@@ -1,9 +1,10 @@
 import Axios from "axios"
 
+Axios.defaults.withCredentials = true
+
 export const httpClient = 
     Axios.create({
-        baseURL: "http://172.28.2.3:80", 
-        withCredentials: true
+        baseURL: "http://localhost:30001"
     })
 
 async function testPing() {
@@ -13,6 +14,14 @@ async function testPing() {
     )
 } 
 
+async function getSessionId() {
+    console.log("> Fetching Session ID...")
+    const response = await httpClient.get("/auth/session-id", {
+        withCredentials: true
+    }) 
+    console.log("> Session ID fetched...")
+}
+
 // test POST data 
 await httpClient.post("/auth/sign-up", {
     "foo" : "bar"
@@ -20,5 +29,6 @@ await httpClient.post("/auth/sign-up", {
 
 
 await testPing()
+await getSessionId()
 
 window.httpClient = httpClient

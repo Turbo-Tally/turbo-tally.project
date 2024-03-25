@@ -1,6 +1,56 @@
 <script setup> 
 
 import DefaultLayout from "../layouts/DefaultLayout.vue"
+import { ref } from "vue"
+import { Form } from "@/utils/form.js" 
+import { Validators } from "@/utils/validators.js" 
+import { httpClient } from "@/utils/http-client.js"
+import { useMainStore } from "@/stores/main.store.js" 
+import { useRouter } from "vue-router"
+
+const mainStore = useMainStore() 
+const router = useRouter()
+
+/**
+ * Create Error Message
+ */
+const errorMessage = ref({
+    displayed: false, 
+    status: null
+})
+
+/**
+ * Create Form
+ */
+const form = new Form() 
+
+form.addField("email", async () => {
+    return true 
+})
+
+form.addField("password", async () => {
+    return true
+})
+
+/**
+ * Handle Log In
+ */
+async function handleLogIn() {
+    const response = await httpClient.post("/auth/log-in", {
+        email: form.inputs.value.email, 
+        password: form.inputs.value.password
+    })
+
+    const data = response.data 
+
+    if(data["status"] != "LOGGED_IN") {
+        errorMessage.value.displayed = true
+        errorMessage.value.status = data["status"]
+    } else {
+        mainStore.logIn()
+        router.push("dashboard")
+    }
+}
 
 </script> 
 
@@ -13,20 +63,43 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                 </div> 
                 <div class="form">
                     <input 
+                        class="email"
                         type="text"
                         placeholder="E-mail Address"
+                        v-model="form.inputs.value.email"
+                        @change="form.handle('email')"
                     /> 
                     <input 
-                        type="text"
+                        class="password" 
+                        type="password"
                         placeholder="Password"
+                        v-model="form.inputs.value.password"
+                        @change="form.handle('password')"
                     /> 
+                    <div 
+                        class="error-message" 
+                        v-if="errorMessage.status == 'EMAIL_DOES_NOT_EXIST'"
+                    >
+                        E-mail does not exist.
+                    </div> 
+                    <div 
+                        class="error-message" 
+                        v-if="errorMessage.status == 'INVALID_PASSWORD'"
+                    >
+                        Wrong password for email.
+                    </div> 
                 </div> 
                 <div class="controls"> 
                     <div class="forgot-password-link"> 
                         <a href="/#/forgot-password">Forgot Password?</a>
                     </div> 
                     <div class="log-in-button">
-                        <button>Log In</button>
+                        <button
+                            class="primary-btn"
+                            @click="handleLogIn()"
+                        >
+                            Log In
+                        </button>
                     </div>
                 </div> 
             </div>

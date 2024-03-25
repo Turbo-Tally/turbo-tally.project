@@ -262,7 +262,7 @@ class TestAuth:
                 }
             )
         logout_json = logout.json()
-        assert logout_json["status"] == "USER_LOGGED_OUT"
+        assert logout_json["status"] == "LOGGED_OUT"
 
         # check if user is logged out 
         user = \
