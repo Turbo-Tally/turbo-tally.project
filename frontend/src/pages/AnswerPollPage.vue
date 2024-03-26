@@ -99,17 +99,24 @@ onMounted(async () => {
                     />
                 </div>
                 <div class="choices"> 
-                    <div 
-                        class="choice" 
-                        v-for="choice in choices" 
-                        :key="choice['_id']"
-                        @click="selectAnswer(choice['answer'])"
-                        :class="{ 'selected' : query == choice['answer'] }"
-                    > 
+                    <template v-if="choices.length > 0">
                         <div 
-                            class="label"
+                            class="choice" 
+                            v-for="choice in choices" 
+                            :key="choice['_id']"
+                            @click="selectAnswer(choice['answer'])"
+                            :class="{ 'selected' : query == choice['answer'] }"
                         > 
-                            {{ choice["answer"] }}
+                            <div 
+                                class="label"
+                            > 
+                                {{ choice["answer"] }}
+                            </div>
+                        </div> 
+                    </template> 
+                    <div v-else class="new-answer"> 
+                        <div class="text"> 
+                            Click <b>Submit</b> for this new category of answer. 
                         </div>
                     </div> 
                 </div>
@@ -189,7 +196,7 @@ onMounted(async () => {
 
             .choices {
                 padding: 10px;
-                margin-top: 20px;
+                margin-top: 0px;
                 display: flex;
                 flex-wrap: wrap;
                 gap: 10px; 
@@ -262,6 +269,16 @@ onMounted(async () => {
         .view-results:hover {
             opacity: 0.8;
             cursor: pointer;
+        }
+
+        .new-answer {
+            background-color: rgb(234, 234, 234);
+            width: 100%;
+            border-radius: 5px; 
+            border: 2px solid grey;
+            display: flex; 
+            justify-content: center;
+            align-items: center;
         }
     }
 </style>
