@@ -138,7 +138,7 @@ def voting__answer_poll(poll_id):
 def voting__browse_polls(): 
     # validate schema 
     data = dict(request.args) 
-    data["cursor"] = int(data["cursor"])
+    data["cursor"] = int(data.get("cursor", -1))
     
     schema = {
         "q" : { "type" : "string" }, 
@@ -291,9 +291,86 @@ def voting__poll_summary(poll_id):
 # GET /voting/random-poll 
 # 
 @voting_blueprint.route("/random-poll", methods=["GET"]) 
-def auth__random_poll():
+def voting__random_poll():
+    if "user" not in request.app: 
+        return {
+            "status" : "NOT_LOGGED_IN"
+        }
+
     user = request.app["user"] 
 
     # get random poll_id for user 
     return Voting.get_random_poll(user)
 
+#
+# GET /voting/polls/by-user
+# 
+@voting_blueprint.route("/polls/by-user", methods=["GET"])
+def voting__polls_by_user(): 
+    # validate schema 
+    data = dict(request.args)
+    data["user"] = int(data["user"])
+    data["cursor"] = int(data.get("cursor", -1))
+
+    schema = {
+        "user" : { "type" : "integer" },
+        "q" : { "type" : "string" }, 
+        "cursor" : { "type" : "integer" }
+    }   
+
+    v = Validator(schema)
+    v.validate(data)
+
+    # get user record 
+    user = users.read(data["user"])
+
+    if user is None: 
+        return { 
+            "status" : "USER_NOT_FOUND"
+        }
+
+    # get polls by user 
+    polls_list = Voting.get_polls_by_user(
+        user, 
+        data["q"],
+        data["cursor"]
+    ) 
+
+    return dumps(polls_list)
+
+
+#
+# GET /voting/answers/by-user
+# 
+@voting_blueprint.route("/answers/by-user", methods=["GET"])
+def voting__answers_by_user(): 
+    # validate schema 
+    data = dict(request.args)
+    data["user"] = int(data["user"])
+    data["cursor"] = int(data.get("cursor", -1))
+
+    schema = {
+        "user" : { "type" : "integer" },
+        "q" : { "type" : "string" }, 
+        "cursor" : { "type" : "integer" }
+    }   
+
+    v = Validator(schema)
+    v.validate(data)
+
+    # get user record 
+    user = users.read(data["user"])
+
+    if user is None: 
+        return { 
+            "status" : "USER_NOT_FOUND"
+        }
+
+    # get polls by user 
+    answers_list = Voting.get_answers_by_user(
+        user, 
+        data["q"],
+        data["cursor"]
+    ) 
+
+    return dumps(answers_list)

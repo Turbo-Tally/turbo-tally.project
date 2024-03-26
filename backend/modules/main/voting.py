@@ -297,3 +297,88 @@ class Voting:
         ]))[0]
 
         return dumps(result)
+
+    def get_polls_by_user(user, query, cursor):
+        matcher = {
+            "user.$id" : user["_id"], 
+            "_id" : { "$gt" : cursor }
+        }
+
+        poll_count = polls.coll.count_documents(matcher)
+
+        polls_list = list(polls.coll.aggregate([
+            {
+                "$match" : matcher
+            }
+        ]))
+
+        next_cursor = None
+        if len(polls_list) > 0: 
+            next_cursor = polls_list[-1]["_id"] 
+
+        return {
+            "meta" : {
+                "total" : poll_count, 
+                "next_cursor" : polls_list[-1]["_id"]
+            },
+            "data" : polls_list
+        }
+
+    def get_answers_by_user(user, query, cursor): 
+        matcher = {
+            "user.$id" : user["_id"], 
+            "_id" : { "$gt" : cursor }
+        }
+
+        answers_count = answers.coll.count_documents(matcher)
+
+        base_projection = {
+            "_id" : 1,
+            "answer" : 1, 
+            "answered_at" : 1, 
+            "user" : 1, 
+            "poll" : 1
+        }
+
+        answers_list = list(answers.coll.aggregate([
+            {
+                "$match" : matcher
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "users", 
+                    "localField" : "user.$id", 
+                    "foreignField" : "_id", 
+                    "as" : "user"
+                }
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "polls", 
+                    "localField" : "polls.$id", 
+                    "foreignField" : "_id", 
+                    "as" : "poll"
+                }
+            },
+            {
+                "$project" : {
+                    **base_projection, 
+                    "user": { "$arrayElemAt": [ "$user", 0 ] }, 
+                    "poll": { "$arrayElemAt": [ "$poll", 0 ] }, 
+                }
+            }
+        ]))
+
+        next_cursor = None
+        if len(answers_list) > 0: 
+            next_cursor = answers_list[-1]["_id"] 
+
+        return {
+            "meta" : {
+                "total" : answers_count, 
+                "next_cursor" : next_cursor
+            },
+            "data" : answers_list
+        }
+
+
