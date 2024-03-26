@@ -374,3 +374,32 @@ def voting__answers_by_user():
     ) 
 
     return dumps(answers_list)
+
+#
+# GET /voting/counts/polls 
+# 
+@voting_blueprint.route("/counts/polls", methods=["GET"]) 
+def voting__count_polls(): 
+    return str(Voting.count_polls())
+
+#
+# GET /voting/counts/answerees 
+# 
+@voting_blueprint.route("/counts/answerees", methods=["GET"]) 
+def voting__count_answerees(): 
+    return str(Voting.count_answerees())
+
+#
+# GET /voting/counts/average-answers
+#  
+@voting_blueprint.route("/counts/average-answers", methods=["GET"])
+def voting__count_average_answers(): 
+    return str(Voting.count_average_answers())
+
+#
+# GET /voting/recent-answers 
+#  
+@voting_blueprint.route("/recent-answers", methods=["GET"]) 
+def voting__recent_answers(): 
+    return dumps(Voting.recent_answers())
+

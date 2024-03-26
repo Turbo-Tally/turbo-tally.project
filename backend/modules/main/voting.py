@@ -8,6 +8,7 @@ from bson.json_util import dumps
 from modules.repositories.polls import polls
 from modules.repositories.answers import answers
 from modules.repositories.choices import choices
+from modules.repositories.users import users
 
 from datetime import datetime
 from modules.common.formats import datetime_format
@@ -298,6 +299,54 @@ class Voting:
 
         return dumps(result)
 
+    def denormalized_answer_list(matcher):
+        base_projection = {
+            "_id" : 1,
+            "answer" : 1, 
+            "answered_at" : 1, 
+            "user" : 1, 
+            "poll" : 1
+        }
+
+        answers_list = list(answers.coll.aggregate([
+            {
+                "$match" : matcher
+            }, 
+            {
+                "$sort" : {
+                    "answered_at" : -1
+                }
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "users", 
+                    "localField" : "user.$id", 
+                    "foreignField" : "_id", 
+                    "as" : "user"
+                }
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "polls", 
+                    "localField" : "poll.$id", 
+                    "foreignField" : "_id", 
+                    "as" : "poll"
+                }
+            },
+            {
+                "$project" : {
+                    **base_projection, 
+                    "user": { "$arrayElemAt": [ "$user", 0 ] }, 
+                    "poll": { "$arrayElemAt": [ "$poll", 0 ] }, 
+                }
+            }, 
+            {
+                "$limit" : 10
+            }
+        ]))
+
+        return answers_list
+    
     def get_polls_by_user(user, query, cursor):
         matcher = {
             "user.$id" : user["_id"], 
@@ -306,11 +355,8 @@ class Voting:
 
         poll_count = polls.coll.count_documents(matcher)
 
-        polls_list = list(polls.coll.aggregate([
-            {
-                "$match" : matcher
-            }
-        ]))
+        polls_list = Voting.denormalized_answer_list(matcher)
+
 
         next_cursor = None
         if len(polls_list) > 0: 
@@ -332,42 +378,7 @@ class Voting:
 
         answers_count = answers.coll.count_documents(matcher)
 
-        base_projection = {
-            "_id" : 1,
-            "answer" : 1, 
-            "answered_at" : 1, 
-            "user" : 1, 
-            "poll" : 1
-        }
-
-        answers_list = list(answers.coll.aggregate([
-            {
-                "$match" : matcher
-            }, 
-            {
-                "$lookup" : {
-                    "from" : "users", 
-                    "localField" : "user.$id", 
-                    "foreignField" : "_id", 
-                    "as" : "user"
-                }
-            }, 
-            {
-                "$lookup" : {
-                    "from" : "polls", 
-                    "localField" : "polls.$id", 
-                    "foreignField" : "_id", 
-                    "as" : "poll"
-                }
-            },
-            {
-                "$project" : {
-                    **base_projection, 
-                    "user": { "$arrayElemAt": [ "$user", 0 ] }, 
-                    "poll": { "$arrayElemAt": [ "$poll", 0 ] }, 
-                }
-            }
-        ]))
+        answers_list = Voting.denormalized_answer_list(matcher)
 
         next_cursor = None
         if len(answers_list) > 0: 
@@ -382,3 +393,19 @@ class Voting:
         }
 
 
+    def recent_answers(): 
+        answers_list = Voting.denormalized_answer_list({})
+        return answers_list 
+
+    def count_polls(): 
+        return polls.coll.count_documents({}) 
+
+    def count_answerees(): 
+        return users.coll.count_documents({})
+
+    def count_average_answers():
+        total_answers = answers.coll.count_documents({}) 
+        total_polls = polls.coll.count_documents({})
+        average = total_answers // total_polls
+
+        return average
