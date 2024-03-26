@@ -1,8 +1,24 @@
 <script setup> 
 
-import { defineProps } from "vue" 
+import { defineProps, computed, ref } from "vue" 
 
 const props = defineProps([ "title", "value" ])
+
+
+const normValue = computed(() => {
+    const val = props.value
+
+    if (val >= 1000000) {
+        return (val / 1000000).toFixed(1) + "M"
+    }
+    else if (val >= 1000) {
+        return (val / 1000).toFixed(1) + "K"
+    }
+    else {
+        return val 
+    }
+    
+})
 
 </script> 
 
@@ -11,8 +27,8 @@ const props = defineProps([ "title", "value" ])
         <div class="title">
             {{ props.title }} 
         </div>
-        <div class="value">
-            {{ props.value }}
+        <div class="value" :title="props.value">
+            {{ normValue }}
         </div>
     </div>
 </template> 
@@ -31,6 +47,7 @@ const props = defineProps([ "title", "value" ])
         .value {
             text-align: center;
             padding: 20px;
+            margin-top: -20px;
             font-size: 50px;
             font-weight: bold;
         }

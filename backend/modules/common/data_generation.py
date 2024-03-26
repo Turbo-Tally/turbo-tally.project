@@ -3,7 +3,7 @@ from .locations import provinces, regions
 import random
 from .password_generation import random_password
 from .formats import datetime_format
-from datetime import datetime 
+from datetime import datetime, date
 
 from modules.main.auth import auth
 
@@ -58,11 +58,23 @@ def generate_random_user():
 def generate_random_poll(**kwargs):
     n_choices = kwargs.get("n_choices", (4, 10))
     choices_count = random.randint(n_choices[0], n_choices[1])
+    answer_date = faker.date_between(
+        date(2022, 1, 1),
+        date(2024, 1, 1)
+    )
+
     data = { 
         "title" : faker.sentences(nb=1)[0][0:-1] + "?", 
-        "choices" : faker.words(nb=choices_count, unique=True)
+        "choices" :     
+            map(
+                lambda x: x.upper(), 
+                faker.words(nb=choices_count, unique=True)
+            ), 
+        "created_at" : datetime(
+            answer_date.year,
+            answer_date.month, 
+            answer_date.day
+        )
     }
     return data
 
-def generate_random_answer(): 
-    pass 

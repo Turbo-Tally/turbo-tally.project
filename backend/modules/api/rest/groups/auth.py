@@ -46,7 +46,7 @@ def auth__sign_up():
             "errors" : v.errors
         }
 
-    # create normalized registration data
+    # create normalized registration data ...
     norm_data = {
         "info" : {
             "birthdate" : 

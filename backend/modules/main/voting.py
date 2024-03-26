@@ -14,11 +14,17 @@ from datetime import datetime
 from modules.common.formats import datetime_format
 from modules.core.database import db_base
 
+import re
+
 class Voting: 
-    def create_poll(user, data):
+    def create_poll(user, data, **kwargs):
+        created_at = kwargs.get("created_at", datetime.now())
+
         with db_base.start_session() as session:
             # create normalized data 
             poll_id = polls.next_id() 
+
+            data["choices"] = map(lambda x: x.upper(), data["choices"])
 
             norm_data = {
                 "_id" : poll_id,
@@ -36,7 +42,7 @@ class Voting:
                 "bot_flags" : {
                     "is_locked" : False
                 },
-                "created_at" : datetime.now()
+                "created_at" : created_at
             } 
 
             # insert poll in database 
@@ -65,6 +71,8 @@ class Voting:
         with db_base.start_session() as session:
             user_id = int(user["_id"]) 
             poll_id = int(data["poll_id"])   
+            
+            data["answer"] = data["answer"].upper()
 
             # create normalized data
             norm_data = {
@@ -77,7 +85,8 @@ class Voting:
                     "$ref" : "polls", 
                     "$id" : poll_id
                 },
-                "answer" : data["answer"]
+                "answer" : data["answer"], 
+                "answered_at" : datetime.now()
             }
 
             # create poll record 
@@ -117,11 +126,22 @@ class Voting:
     def browse_polls(
         query, sort = "recent", filter_ = "all", cursor = -1, **kwargs
     ): 
-        user =  kwargs.get("user", None)
         answered_polls = [] 
+
+        base_projection = {
+            "_id" : 1, 
+            "title" : 1, 
+            "user" : 1, 
+            "meta" : 1, 
+            "chart_data" : 1, 
+            "created_at" : 1
+        }
+
+        user = kwargs.get("user", None)
 
         if user is not None:
             answered_polls = Voting.get_answered_polls(user)
+        
 
         sort_order = None 
 
@@ -134,58 +154,99 @@ class Voting:
             sort_order = {
                 "created_at" : 1
             }
-            
-        elif sort == "most_voted": 
-            sort_order = {
-                "meta.no_of_answers" : -1
-            }
-
-        elif sort == "least_voted": 
-            sort_order = {
-                "meta.no_of_answers" : 1
-            }
-
+   
         else: 
             raise Exception("Unknown sort mode [" + sort + "]")
 
-        if filter_ == "all": 
-            query = {
-                "title" : { "$regex" : query },
-                "_id" : { "$gt" : cursor }
+        cursor_cond = None 
+
+        if sort == "recent" or sort == "most_voted": 
+            cursor_cond = "$lt" 
+            
+            if cursor == -1: 
+                cursor = float('infinity')
+
+        elif sort == "oldest" or sort == "least_voted": 
+            cursor_cond = "$gt"
+
+        matcher =  None 
+
+        if filter_ == "answered": 
+            matcher = {
+                "$and" : [
+                    { "_id" : { cursor_cond : cursor } },
+                    { "_id" : { "$in" : answered_polls }}
+                ],
+                "title" : { "$regex" : query }
             }
 
-            poll_count = polls.coll.count_documents(query)
+        elif filter_ == "unanswered": 
+            matcher  = {
+                "$and" : [
+                    { "_id" : { cursor_cond : cursor } },
+                    { "_id" : { "$nin" : answered_polls }}
+                ],
+                "title" : { "$regex" : query }
+            }
+
+        else:
+            matcher = {}
+
+        agg = [
+            {
+                "$match" : matcher
+            },
+            {
+                "$lookup" : {
+                    "from" : "users", 
+                    "localField" : "user.$id", 
+                    "foreignField" : "_id",
+                    "as" : "user"
+                }
+            }, 
+            {
+                "$project" : {
+                    **base_projection, 
+                    "user": { "$arrayElemAt": [ "$user", 0 ] }
+                }
+            }, 
+            { 
+                "$sort" : sort_order
+            }, 
+            {
+                "$limit" : 10
+            }
+        ]
+
+        if filter_ == "all": 
+            poll_count = polls.coll.count_documents(matcher)
             sorted_polls = \
-                list(polls.coll.find(query).sort(sort_order).limit(10))
+                list(polls.coll.aggregate(agg))
 
             meta = {}
-            if poll_count > 0: 
+            if len(sorted_polls) > 0: 
                 meta["next_cursor"] = sorted_polls[-1]["_id"] 
             meta["count"] = poll_count
 
             return {
                 "data" : sorted_polls, 
-                "meta" : {
-                    "count" : poll_count, 
-                    "next_cursor" : next_cursor
-                }
+                "meta" : meta
             }
 
 
         elif filter_ == "answered": 
-            query = {
-                "title" : { "$regex" : query },
-                "_id" : { "$gt" : cursor },
-                "poll.$id" : { "$in" : answered_polls }
-            }
+            # query = {
+            #     "title" : { "$regex" : query },
+            #     "poll.$id" : { "$in" : answered_polls }
+            # }
 
-            poll_count = polls.coll.count_documents(query)
+            poll_count = polls.coll.count_documents(matcher)
             sorted_polls = \
-                list(polls.coll.find(query).sort(sort_order).limit(10))
+                list(polls.coll.aggregate(agg))
 
             
             meta = {}
-            if poll_count > 0: 
+            if len(sorted_polls) > 0: 
                 meta["next_cursor"] = sorted_polls[-1]["_id"] 
             meta["count"] = poll_count
             
@@ -196,18 +257,17 @@ class Voting:
 
 
         elif filter_ == "unanswered": 
-            query = {
-                "title" : { "$regex" : query },
-                "_id" : { "$gt" : cursor },
-                "poll.$id" : { "$nin" : answered_polls }
-            }
+            # query = {
+            #     "title" : { "$regex" : query },
+            #     "poll.$id" : { "$nin" : answered_polls }
+            # }
 
-            poll_count = polls.coll.count_documents(query)
+            poll_count = polls.coll.count_documents(matcher)
             sorted_polls = \
-                list(polls.coll.find(query).sort(sort_order).limit(10))
+                list(polls.coll.aggregate(agg))
             
             meta = {}
-            if poll_count > 0: 
+            if len(sorted_polls) > 0: 
                 meta["next_cursor"] = sorted_polls[-1]["_id"] 
             meta["count"] = poll_count
 
@@ -299,7 +359,7 @@ class Voting:
 
         return dumps(result)
 
-    def denormalized_answer_list(matcher):
+    def denormalized_answer_list(matcher, submatch = {}):
         base_projection = {
             "_id" : 1,
             "answer" : 1, 
@@ -341,21 +401,65 @@ class Voting:
                 }
             }, 
             {
+                "$match" : submatch
+            },
+            {
                 "$limit" : 10
             }
         ]))
 
         return answers_list
+
+    def denormalized_poll_list(matcher):
+        base_projection = {
+            "_id" : 1,
+            "title" : 1, 
+            "user" : 1, 
+            "meta" : 1, 
+            "chart_data" : 1, 
+            "created_at" : 1
+        }
+
+        polls_list = list(polls.coll.aggregate([
+            {
+                "$match" : matcher
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "users", 
+                    "localField" : "user.$id", 
+                    "foreignField" : "_id", 
+                    "as" : "user"
+                }
+            }, 
+            {
+                "$project" : {
+                    **base_projection, 
+                    "user": { "$arrayElemAt": [ "$user", 0 ] }
+                }
+            }, 
+            {
+                "$sort" : {
+                    "answered_at" : -1
+                }
+            }, 
+            {
+                "$limit" : 10
+            }
+        ]))
+
+        return polls_list
     
     def get_polls_by_user(user, query, cursor):
         matcher = {
             "user.$id" : user["_id"], 
-            "_id" : { "$gt" : cursor }
+            "_id" : { "$gt" : cursor },
+            "title" : { "$regex" : query }
         }
 
         poll_count = polls.coll.count_documents(matcher)
 
-        polls_list = Voting.denormalized_answer_list(matcher)
+        polls_list = Voting.denormalized_poll_list(matcher)
 
 
         next_cursor = None
@@ -365,7 +469,7 @@ class Voting:
         return {
             "meta" : {
                 "total" : poll_count, 
-                "next_cursor" : polls_list[-1]["_id"]
+                "next_cursor" : next_cursor
             },
             "data" : polls_list
         }
@@ -376,9 +480,16 @@ class Voting:
             "_id" : { "$gt" : cursor }
         }
 
+        submatch = {
+            "$or" : [
+               { "answer" : { "$regex" : re.compile(query, re.IGNORECASE) } }, 
+               { "poll.title" : { "$regex" : re.compile(query, re.IGNORECASE) } }, 
+            ]
+        }
+
         answers_count = answers.coll.count_documents(matcher)
 
-        answers_list = Voting.denormalized_answer_list(matcher)
+        answers_list = Voting.denormalized_answer_list(matcher, submatch)
 
         next_cursor = None
         if len(answers_list) > 0: 
@@ -407,5 +518,4 @@ class Voting:
         total_answers = answers.coll.count_documents({}) 
         total_polls = polls.coll.count_documents({})
         average = total_answers // total_polls
-
         return average

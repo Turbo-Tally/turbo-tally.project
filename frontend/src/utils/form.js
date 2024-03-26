@@ -79,13 +79,16 @@ export class Form
 
     json(convertToSnakeCase = true) {
         const json = {}
-     
+    
+        
         for(let key in this.inputs.value) {
             const origKey = key
+            let newKey = origKey
             if(convertToSnakeCase)
-                key = this.camelToUnderscore(key)
-            json[key] = this.inputs.value[origKey]
+                newKey = this.camelToUnderscore(key)
+            json[newKey] = this.inputs.value[origKey]
         }
+
         return json
     }
 

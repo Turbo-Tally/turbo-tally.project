@@ -14,7 +14,7 @@ from modules.repositories.choices import choices
 from modules.repositories.auto_increments import auto_increments
 
 from modules.common.data_generation import \
-    generate_random_user, generate_random_poll, generate_random_answer
+    generate_random_user, generate_random_poll
 
 from modules.main.voting import Voting
 
@@ -100,7 +100,7 @@ def generate_polls():
         print(f"\t| Creating poll {i + 1} of {NO_OF_POLLS}")
         random_user = random.choice(user_pool)
         random_poll = generate_random_poll(n_choices=NO_OF_CHOICES_PER_POLL)
-        Voting.create_poll(random_user, random_poll)
+        Voting.create_poll(random_user, random_poll, created_at=random_poll["created_at"])
 
 ####################
 # GENERATE ANSWERS #
@@ -165,6 +165,11 @@ def generate_answers():
     print("> Creating ids...")
     for i in range(len(answers_list)): 
         answers_list[i]["_id"] = i + 1
+
+    auto_increments.coll.update_one(
+        { "_id" : "answers "},
+        { "counter" : len(answers_list) + 1 }
+    )
 
     answers.coll.insert_many(answers_list)
 

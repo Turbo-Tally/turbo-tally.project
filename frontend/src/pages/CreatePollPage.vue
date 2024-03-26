@@ -1,6 +1,65 @@
 <script setup> 
 
 import DefaultLayout from "../layouts/DefaultLayout.vue"
+import { Form } from "@/utils/form.js"
+import { Validators } from "@/utils/validators.js"
+import Choice from "@/components/Choice.vue"
+import { httpClient } from "@/utils/http-client.js"
+import { useRouter } from "vue-router"
+
+const form = new Form() 
+
+const choicesWithErrors = []
+
+form.addField("title", (value) => {
+    return Validators.pollTitle(value)
+})
+
+form.addField("choices", (value) => {
+    for(let item in value) {
+        const iterItem = value[item]
+        if(!Validators.pollChoice(iterItem))
+            return false
+    }
+    return true
+})
+
+form.inputs.value.choices = [ "" ]
+
+form.requireAll(true)
+
+const router = useRouter()
+
+function editChoice(index, value) {
+    form.inputs.value.choices[index] = value
+    form.handle('choices')
+}
+
+function handleClearAll() {
+    form.inputs.value.choices = [ "" ]
+    form.handle('choices')
+}
+
+function handleAddChoice() {
+    form.inputs.value.choices.push("")
+    form.handle('choices')
+}
+
+async function handleSubmit() {
+    const inputs = form.json() 
+    const response = await httpClient.post("/voting/polls/create", inputs) 
+    const data = response.data 
+    const pollId = data["poll_id"]
+    if(data["status"] == "POLL_CREATED") {
+        router.push("/analyze/" + pollId)
+    }
+}
+
+window.addEventListener("keydown", (e) => {
+    if(e.key == "Enter") {
+        handleAddChoice();
+    }
+})
 
 </script> 
 
@@ -12,50 +71,63 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                     <h1>Create Poll</h1>
                 </div> 
                 <div class="title-input"> 
-                    <input type="text" placeholder="Enter Question Title..." />
+                    <input 
+                        type="text" 
+                        placeholder="Enter Question Title..." 
+                        @change="form.handle('title')"
+                        v-model="form.inputs.value.title"
+                    />
+                    <div class="error-message" v-if="form.hasError('title')"> 
+                        Title must be between 5 and 256 characters.
+                    </div> 
                 </div> 
                 <div class="choices">
-                    <div class="choices-header"> 
+                    <div class="choices-header">
                         <div class="title"> 
                             CHOICES 
                         </div>  
                         <div class="controls"> 
-                            <button class="primary-btn"> 
+                            <button 
+                                class="primary-btn"
+                                @click="handleClearAll()"
+                            > 
                                 CLEAR ALL 
                             </button> 
-                            <button class="primary-btn"> 
+                            <button 
+                                class="primary-btn"
+                                @click="handleAddChoice()"
+                            >
+
                                 + ADD CHOICE 
                             </button> 
                         </div>
                     </div> 
-                    <div class="choice-results"> 
-                        <div class="choice"> 
-                            <div class="name"> 
-                                Berde
+                    <div class="choice-results">    
+                        <div
+                            v-for="(choice, index) in form.inputs.value.choices"
+                            :key="choice"
+                            class="choice"
+                        > 
+                            <div class="name">
+                                <Choice 
+                                    :value="choice" 
+                                    @change="(value) => editChoice(index, value)" 
+                                />
                             </div> 
-                            <div class="trash"> 
-                                🗑️ 
-                            </div> 
-                        </div> 
-                        <div class="choice"> 
-                            <div class="name"> 
-                                Dilaw
-                            </div> 
-                            <div class="trash"> 
-                                🗑️ 
-                            </div> 
-                        </div> 
-                        <div class="choice"> 
-                            <div class="name"> 
-                                Asul
-                            </div> 
-                            <div class="trash"> 
+                            <div 
+                                class="trash"
+                                @click="form.inputs.value.choices.splice(index, 1)"
+                            > 
                                 🗑️ 
                             </div> 
                         </div> 
                     </div>
                     <div class="choice-submit"> 
-                        <button class="primary-btn"> 
+                        <button 
+                            class="primary-btn"
+                            :disabled="!form.canSubmit()"
+                            @click="handleSubmit()"
+                        > 
                             SUBMIT
                         </button> 
                     </div> 
@@ -109,7 +181,6 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                     flex-direction: column;
 
                     .choice {
-                        background-color: rgb(234, 234, 234);
                         display: flex;
                         padding: 10px;
                         box-shadow: 0px 0px 2px black;

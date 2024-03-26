@@ -1,57 +1,158 @@
 <script setup> 
 
 import DefaultLayout from "../layouts/DefaultLayout.vue"
-
 import ResultCard from "@/components/polls/ResultCard.vue"
+import { ref, watch, onMounted } from "vue"
+
+import { Helpers } from "@/utils/helpers.js"
+import { useMainStore } from "@/stores/main.store.js" 
+import { Poll } from "@/utils/poll.js"
+import { useRouter } from "vue-router"
+ 
+const router = useRouter()
+const mainStore = useMainStore();
+
+const inputs = ref({
+    q : "", 
+    sort : "recent", 
+    filter : "all",
+    cursor: -1
+})
+
+const hasReachedEnd = ref(false)
+
+const polls = ref(null)
+
+function resetCursor() {
+    inputs.value.cursor = -1
+}
+
+async function fetchInputs() {
+    const response = await httpClient.get("/voting/polls/browse", {
+        params: inputs.value
+    })
+    const data = response.data 
+    
+    inputs.value.cursor = data["meta"]["next_cursor"]
+
+    if (!("next_cursor" in data["meta"])) {
+        hasReachedEnd.value = true
+    }
+    
+    return data["data"]
+}
+
+function timestamp(dt) { 
+    const daysAgoText = Helpers.daysAgoText(dt)
+    const timeText = Helpers.timeText(dt) 
+    return daysAgoText + ", " + timeText 
+}
+
+onMounted(async () => {
+    polls.value = await fetchInputs()
+})
+
+async function newFetch() {
+    hasReachedEnd.value = false
+    resetCursor() 
+    polls.value = await fetchInputs()
+}
+
+async function handleClickResultCard(poll) {
+    const pollId = poll["_id"]
+    
+    if(await Poll.hasAnswered(pollId)) {
+        router.push("/analyze/" + pollId)
+    } else {
+        router.push("/poll/" + pollId + "/answer")
+    }
+}
+
+Helpers.onScrollBottom(async () => {
+    if(!hasReachedEnd.value)
+        if(polls.value != null)
+            polls.value = polls.value.concat(await fetchInputs())
+})
 
 </script> 
 
 <template> 
     <div class="polls-page"> 
         <DefaultLayout>
-            <div class="polls-content"> 
+            <div class="polls-content" v-if="polls"> 
                 <div class="search"> 
                     <input 
                         type="text" 
                         placeholder="Search..."
+                        v-model="inputs.q"
+                        @change="newFetch()"
                     />
                 </div> 
                 <div class="controls"> 
                     <div class="create-new-poll"> 
-                        <button class="primary-btn">
+                        <button 
+                            class="primary-btn"
+                            @click="$router.push('/poll/create')"
+                        >
+
                             + Create New Poll
                         </button> 
                     </div> 
                     <div class="sort-poll" > 
                         <div style="flex: 1" />
                         <div class="sort">
-                            <select>
-                                <option>Recent</option>
+                            <select
+                                v-model="inputs.sort"
+                                @change="newFetch()"
+                            >
+                                <option value="recent">Recent</option>
+                                <option value="oldest">Oldest</option>
                             </select> 
                         </div>
-                        <div class="filter">
+                        <div class="filter" v-if="mainStore.isLoggedIn">
                             <ul>
-                                <li>All</li>
-                                <li class="active">Unanswered</li>
-                                <li>Answered</li>
+                                <li 
+                                    @click="async () => {
+                                        inputs.filter = 'all'
+                                        await newFetch()
+                                    }"
+                                    :class="{ 'active' : inputs.filter == 'all' }"
+                                >
+                                    All
+                                </li>
+                                <li 
+                                    @click="async () => {
+                                        inputs.filter = 'unanswered'
+                                        await newFetch()
+                                    }"
+                                    :class="{ 'active' : inputs.filter == 'unanswered' }"
+                                >
+                                    Unanswered
+                                </li>
+                                <li
+                                    @click="async () => {
+                                        inputs.filter = 'answered'
+                                        await newFetch()
+                                    }"
+                                    :class="{ 'active' : inputs.filter == 'answered' }"
+                                >
+                                    Answered
+                                </li>
                             </ul> 
                         </div>
                     </div>  
                 </div> 
-                <div class="results"> 
+                <div class="results">
                     <ResultCard 
-                        poll="What's your favorite color?" 
-                        author="User1234" 
-                        timestamp="Today, 7:04PM"
-                        votes="1234"
+                        v-for="poll in polls"
+                        @click="handleClickResultCard(poll)"
+                        :key="poll['id']"
+                        :poll="poll['title']" 
+                        :author="poll['user']['info']['username']" 
+                        :timestamp="timestamp(poll['created_at']['$date'])"
+                        :votes="poll['meta']['no_of_answers']"
                     />
-
-                    <ResultCard 
-                        poll="What's your favorite pet?" 
-                        author="User4321"
-                        timestamp="Today, 7:04PM"
-                        votes="1234"
-                    /> 
+                    
                 </div>    
             </div> 
          
@@ -61,6 +162,8 @@ import ResultCard from "@/components/polls/ResultCard.vue"
 
 <style scoped lang="scss"> 
     .polls-page {
+        padding-bottom: 50px; 
+
         .polls-content {
             width: 900px;
             margin: 0 auto;
@@ -96,6 +199,11 @@ import ResultCard from "@/components/polls/ResultCard.vue"
                         ul li {
                             display: inline;
                             margin: 0 10px;
+                            cursor: pointer;
+                        }
+
+                        ul li:hover {
+                            opacity: 0.8;
                         }
 
                         li.active {

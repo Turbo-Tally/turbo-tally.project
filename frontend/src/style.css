@@ -99,3 +99,18 @@ select {
 button[disabled] {
     opacity: 0.5;
 }
+
+/* width */
+::-webkit-scrollbar {
+    width: 5px;
+}
+  
+/* Track */
+::-webkit-scrollbar-track {
+    background-color: rgb(234, 234, 234);
+}
+
+/* Track */
+::-webkit-scrollbar-thumb {
+    background-color: grey;
+}

@@ -1,38 +1,115 @@
 <script setup> 
 
 import DefaultLayout from "../layouts/DefaultLayout.vue"
+import { httpClient } from "@/utils/http-client.js"
+import { useRouter, useRoute } from "vue-router" 
+import { onMounted, ref, watch } from "vue"
+import { Poll } from "@/utils/poll.js"
+import { User } from "@/utils/user.js"
+
+const router = useRouter()
+const route = useRoute()
+
+const poll = ref({})
+const choices = ref([])
+const cursor = ref(-1) 
+const query = ref("")
+
+const user = ref({})
+const hasAlreadyAnswered = ref(false)
+
+/** 
+ * Skip Polls
+ */
+async function skip() {
+    const response = await httpClient.get("/voting/random-poll") 
+    const data = response.data 
+    const pollId = data["_id"] 
+    router.push("/poll/" + pollId + "/answer")
+}
+
+async function fetchPoll() {
+    poll.value =    
+        await Poll.getInfo(route.params.pollId)
+    const choicesResults =  
+        await Poll.getChoices(
+            route.params.pollId, 
+            query.value.toUpperCase(), 
+            -1
+        )
+    cursor.value = choicesResults["meta"]["next_cursor"]
+    choices.value = choicesResults["data"]
+}
+
+async function selectAnswer(answer) {
+    query.value = answer
+}
+
+async function submit() {
+    const response = await Poll.answer(
+        route.params.pollId, 
+        query.value.toUpperCase()
+    )
+    if (response["status"] == "ANSWER_SUBMITTED") {
+        router.push("/analyze/" + route.params.pollId)
+    }
+}
+
+function canSubmit() {
+    return query.value != ""
+}
+
+async function editQuery() {
+    await fetchPoll()
+}
+
+watch(() => route.params.pollId, async () => {
+    await fetchPoll()
+})
+
+
+
+
+onMounted(async () => {
+    await fetchPoll()
+    user.value = await User.data()
+
+    if(await Poll.hasAnswered(route.params.pollId)) {
+       hasAlreadyAnswered.value = true
+    }
+})
+
 
 </script> 
 
 <template> 
     <div class="answer-poll-page"> 
         <DefaultLayout>
-            <div class="answer-poll-content"> 
+            <div class="answer-poll-content" v-if="!hasAlreadyAnswered"> 
                 <div class="title"> 
-                    <h1>What is your favorite color?</h1>
-                </div> 
-                <div class="answer-input"> 
-                    <input type="text" placeholder="Type an answer..." />
+                    <h1>{{ poll["title"] }}</h1>
+                </div>  
+                <div class="answer-input" style="padding: 10px"> 
+                    <input 
+                        type="text" 
+                        placeholder="Type an answer..." 
+                        v-model="query"
+                        style="text-transform: uppercase"
+                        @keyup="editQuery"
+                    />
                 </div>
                 <div class="choices"> 
-                    <div class="choice"> 
-                        <div class="label"> 
-                            ASUL
-                        </div>
-                    </div> 
-                    <div class="choice"> 
-                        <div class="label">
-                            BERDE 
-                        </div>
-                    </div>
-                    <div class="choice"> 
-                        <div class="label">
-                            DILAW 
-                        </div> 
-                    </div>
-                    <div class="choice"> 
-                        <div class="label">
-                            PULA 
+                    <div 
+                        class="choice" 
+                        v-for="choice in choices" 
+                        :key="choice['_id']"
+                        @click="selectAnswer(choice['answer'])"
+                        :class="{ 'selected' : query == choice['answer'] }"
+                    > 
+                        <div 
+                            class="label"
+                        > 
+                            {{ choice["answer"] }}
                         </div>
                     </div> 
                 </div>
@@ -45,6 +122,7 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                             <button 
                                 class="primary-btn"
                                 style="background-color: rgb(50, 50, 50);"
+                                @click="skip()"
                             > 
                                 SKIP
                             </button> 
@@ -57,6 +135,8 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                         <div class="label">
                             <button 
                                 class="primary-btn" 
+                                @click="submit()"
+                                :disabled="!canSubmit()"
                             > 
                                 SUBMIT
                             </button> 
@@ -64,12 +144,26 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                     </div>
                 </div>
             </div> 
+
+            <div class="already-answered" v-else> 
+                <div class="inner">
+                    Already answered... <br />
+                    <a  
+                        class="view-results" 
+                        @click="$router.push('/analyze/' + $route.params.pollId)"
+                    >
+                        Click here to view results...
+                    </a>
+                </div>
+            </div>  
         </DefaultLayout>
     </div> 
 </template> 
 
 <style lang="scss" scoped> 
     .answer-poll-page {
+        padding-bottom: 100px;
+
         .answer-poll-content {
             width: 512px;
             box-shadow: 0px 0px 2px black;
@@ -89,15 +183,23 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                 margin-top: 15px;
             }
 
+            ::--webkit-scrollbar {
+                display: none;
+            }
+
             .choices {
+                padding: 10px;
                 margin-top: 20px;
                 display: flex;
                 flex-wrap: wrap;
                 gap: 10px; 
+                min-height: 250px; 
+                max-height: 250px;
+                overflow-y: scroll;
 
                 .choice {
-                    width: 100%;
-                    flex: 48%;
+                    box-sizing: border-box;
+                    width: 48%;
                     box-shadow: 0 0 0 1px black;
                     margin-bottom: 10px;
                     cursor: pointer;
@@ -117,6 +219,11 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                 .choice:active {
                     opacity: 0.5;
                 }
+
+                .selected {
+                    border: 2px solid green;
+                    background-color: rgb(108, 255, 133)
+                }
             }
 
             .controls {
@@ -133,6 +240,28 @@ import DefaultLayout from "../layouts/DefaultLayout.vue"
                     }
                 }
             }
+        }
+
+        .already-answered {
+            width: 528px; 
+            height: 300px;
+            background-color: rgb(234, 234, 234);
+            margin: 0 auto;
+            justify-content: center; 
+            align-items: center;
+            display: flex;
+            border: 2px solid grey;
+            text-align: center;
+
+            a {
+                text-decoration: underline;
+                color: black;
+            }
+        }
+        
+        .view-results:hover {
+            opacity: 0.8;
+            cursor: pointer;
         }
     }
 </style>

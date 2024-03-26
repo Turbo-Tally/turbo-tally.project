@@ -1,9 +1,39 @@
 <script setup> 
 
+import { nextTick, onMounted, ref } from "vue"
 import DefaultLayout from "../layouts/DefaultLayout.vue"
 
 import StatCard from "@/components/StatCard.vue"
 import EventReel from "@/components/EventReel.vue"
+
+import { httpClient } from "@/utils/http-client.js" 
+
+const totalNoOfPolls = ref("-") 
+const totalNoOfAnswerees = ref("-") 
+const totalAverageAnswers = ref("-")
+
+const recentAnswers = ref([])
+
+async function fetchCount(type) {
+    const response = await httpClient.get("/voting/counts/" + type);
+    const data = response.data 
+    return data
+}
+
+async function getRecentAnswers() {
+    const response = await httpClient.get("/voting/recent-answers") 
+    const data = response.data 
+    return data
+}
+
+
+onMounted(async () => {
+    totalNoOfPolls.value = await fetchCount("polls")
+    totalNoOfAnswerees.value = await fetchCount("answerees")    
+    totalAverageAnswers.value = await fetchCount("average-answers")   
+
+    recentAnswers.value = await getRecentAnswers()
+})
 
 </script> 
 
@@ -14,19 +44,19 @@ import EventReel from "@/components/EventReel.vue"
                 <div class="total-no-of-polls">
                     <StatCard 
                         title="Total No. of Polls" 
-                        value="1.0K"
+                        :value="totalNoOfPolls"
                     />
                 </div> 
                 <div class="total-no-of-answerees"> 
                     <StatCard 
                         title="Total No. of Answerees" 
-                        value="1.0K"
+                        :value="totalNoOfAnswerees"
                     />
                 </div> 
                 <div class="average-answerees-per-post"> 
                     <StatCard 
-                        title="Average Answerees per Post" 
-                        value="1.0K"
+                        title="Average Answers per Post" 
+                        :value="totalAverageAnswers"
                     />
                 </div> 
             </div> 
@@ -34,7 +64,7 @@ import EventReel from "@/components/EventReel.vue"
                 Join other people who vote in real time...
             </div>
             <div class="event-reel">
-                <EventReel />
+                <EventReel :content="recentAnswers" />
             </div>
         </DefaultLayout>
     </div> 
@@ -42,6 +72,7 @@ import EventReel from "@/components/EventReel.vue"
 
 <style lang="scss"> 
     .home-page {
+        padding-bottom: 100px;
 
         .general-stats {
             display: flex; 

@@ -1,61 +1,32 @@
 <script setup> 
 
-import { ref } from "vue"
+import { computed, ref } from "vue"
+import { Helpers } from "@/utils/helpers.js"
 
-const eventReelItems = ref([
-    { 
-        "answer_id" : 1,
-        "vote_info" : {
-            "username" : "User1234", 
-            "choice": "Asul",
-        },  
-        "poll" : {
-            "id" : 1,
-            "title" : "What's your favorite color?"
-        }, 
-        "answered_at" : "Today @ 7:05PM"
-    },
-    { 
-        "answer_id" : 2,
-        "vote_info" : {
-            "username" : "User1123", 
-            "choice": "Berde",
-        },  
-        "poll" : {
-            "id" : 2,
-            "title" : "What's your favorite color?"
-        }, 
-        "answered_at" : "Today @ 7:04PM"
-    },
-    { 
-        "answer_id" : 3,
-        "vote_info" : {
-            "username" : "User4321", 
-            "choice": "Pula",
-        },  
-        "poll" : {
-            "id" : 2,
-            "title" : "What's your favorite color?"
-        }, 
-        "answered_at" : "Today @ 7:03PM"
-    }
-])
+const props = defineProps([ "content" ])
+
+const currentContent = computed(() => {
+    return props.content
+})
 
 </script> 
 
 <template> 
     <div class="event-reel-component"> 
-        <div v-for="item in eventReelItems" :key="item.id">
+        <div v-for="item in currentContent" :key="item.id">
             <div class="event-item">
                 <div class="info">
-                    <b>{{ item.vote_info.username }}</b> 
+                    <b>{{ item["user"]["info"]["username"] }}</b> 
                     voted 
-                    <i><b>{{ item.vote_info.choice }}</b></i> 
+                    <i><b>{{ item["answer"] }}</b></i> 
                     in 
-                    <b>"{{ item.poll.title }}"</b>
+                    <b>"{{ item["poll"]["title"] }}"</b>
                 </div> 
                 <div class="timestamp"> 
-                    {{ item.answered_at }}
+                    {{ Helpers.daysAgoText(item["answered_at"]["$date"]) }} 
+                    @
+                    {{ Helpers.timeText(item["answered_at"]["$date"]) }}
+
                 </div> 
             </div>
         </div>

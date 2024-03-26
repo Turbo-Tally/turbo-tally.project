@@ -45,10 +45,10 @@ def voting__create_poll():
             "schema" : formats["poll_choice"]
         } 
     } 
-    
+
     require_all(schema)
 
-    data = request.json
+    data = dict(request.json)
 
     v = Validator(schema)
     v.validate(data)
@@ -146,9 +146,7 @@ def voting__browse_polls():
             "type" : "string",
             "allowed" : [ 
                 "recent", 
-                "oldest",
-                "most_voted"
-                "least_voted"
+                "oldest"
             ]
         },
         "filter" : {
@@ -157,12 +155,17 @@ def voting__browse_polls():
         }
     }
 
+    user = None 
+    if "user" in request.app: 
+        user = request.app["user"]
+
+
     polls = Voting.browse_polls(
         data["q"], 
         data["sort"], 
         data["filter"],
         data["cursor"], 
-        user=request.app["user"]
+        user=user
     ) 
 
     polls = dumps(polls)
@@ -246,6 +249,7 @@ def voting__poll_find_choices(poll_id):
     data = dict(request.args) 
     data["poll_id"] = int(poll_id) 
     data["cursor"] = int(data.get("cursor", -1))
+    data["q"] = data.get("q", "")
 
     schema = {
         "poll_id" : { "type" : "string" }, 
@@ -402,4 +406,32 @@ def voting__count_average_answers():
 @voting_blueprint.route("/recent-answers", methods=["GET"]) 
 def voting__recent_answers(): 
     return dumps(Voting.recent_answers())
+
+
+#
+# GET /voting/has-answered/<poll_id>
+#  
+@voting_blueprint.route("/has-answered/<poll_id>", methods=["GET"]) 
+def voting__has_answered(poll_id): 
+    if "user" not in request.app: 
+        return {
+            "status" : "UNAUTHENTICATED"
+        }
+    
+    user_id = int(request.app["user"]["_id"]) 
+    poll_id = int(poll_id)
+
+    exists = answers.coll.find_one({ 
+        "user.$id" : user_id,
+        "poll.$id" : poll_id   
+    })
+
+    if exists: 
+        return {
+            "status" : "ALREADY_ANSWERED"
+        }
+    else: 
+        return {
+            "status" : "NOT_YET_ANSWERED"
+        }
 
