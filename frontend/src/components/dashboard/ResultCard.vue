@@ -37,7 +37,7 @@ const props = defineProps([ "answer", "poll", "timestamp" ])
 
         .timestamp {
             background-color: rgb(234, 234, 234); 
-            width: 100px;
+            width: 120px;
             padding: 16px;
             text-align: right;
             border-left: 1px solid grey;

@@ -51,7 +51,7 @@ async function handleSubmit() {
     const data = response.data 
     const pollId = data["poll_id"]
     if(data["status"] == "POLL_CREATED") {
-        router.push("/analyze/" + pollId)
+        router.push("/poll/" + pollId + '/results') 
     }
 }
 

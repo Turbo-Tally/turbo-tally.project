@@ -38,7 +38,7 @@ function defineRoutes() {
         { path: "/poll/create", component: CreatePollPage }, 
         { path: "/poll/:pollId/answer", component: AnswerPollPage }, 
         { path: "/polls", component: PollsPage },
-        { path: "/polls/:pollId/report", component: PollResultsPage }, 
+        { path: "/poll/:pollId/results", component: PollResultsPage }, 
         { path: "/contact-us", component: ContactUsPage }
     ]
 }

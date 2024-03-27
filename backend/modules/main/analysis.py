@@ -115,6 +115,7 @@ class Analyzer:
                 }
             }
         ]))
+        
 
         answers_per_day.sort(key=lambda e: e["_id"])
 
@@ -156,7 +157,7 @@ class Analyzer:
                         "age" : "$user__age", 
                         "answer" : "$answer"
                     }, 
-                    "count" : { "$sum" : 1 }
+                    "answer_count" : { "$sum" : 1 }
                 }
             }
         ]))
@@ -173,7 +174,7 @@ class Analyzer:
                         "gender" : "$user.info.gender", 
                         "answer" : "$answer"
                     }, 
-                    "count" : { "$sum" : 1 }
+                    "answer_count" : { "$sum" : 1 }
                 }
             }
         ]))
@@ -190,7 +191,7 @@ class Analyzer:
                         "region" : "$user.info.region", 
                         "answer" : "$answer"
                     }, 
-                    "count" : { "$sum" : 1 }
+                    "answer_count" : { "$sum" : 1 }
                 }
             }
         ]))
@@ -198,6 +199,38 @@ class Analyzer:
         stacked_by_region.sort(key=lambda e: 
             (e["_id"]["region"], e["_id"]["answer"])
         )
+
+        #
+        # BY REGION 
+        #
+        
+        # get total answers by region
+        answers_by_region = list(Analyzer.denormalized_answer_list(poll_id, [
+            {
+                "$group" : {
+                    "_id" : "$user.info.region", 
+                    "answer_count" : { "$sum" :  1 }
+                }
+            }
+        ]))
+
+        answers_by_region.sort(key=lambda e: e["_id"])
+
+        #
+        # BY GENDER 
+        #
+        
+        # get total answers by province
+        answers_by_gender = list(Analyzer.denormalized_answer_list(poll_id, [
+            {
+                "$group" : {
+                    "_id" : "$user.info.gender", 
+                    "answer_count" : { "$sum" :  1 }
+                }
+            }
+        ]))
+
+        answers_by_gender.sort(key=lambda e: e["_id"])
 
         #
         # BY PROVINCE 
@@ -239,7 +272,9 @@ class Analyzer:
             "all_answers" : {
                 "by_choice" : answers_by_choice, 
                 "by_age" : answers_by_age, 
-                "by_province" : answers_by_province
+                "by_province" : answers_by_province,
+                "by_region" : answers_by_region, 
+                "by_gender" : answers_by_gender
             },
             "by_category" : {
                 "stacked_by_age" : stacked_by_age,

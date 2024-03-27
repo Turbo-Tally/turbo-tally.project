@@ -62,7 +62,7 @@ async function handleClickResultCard(poll) {
     const pollId = poll["_id"]
     
     if(await Poll.hasAnswered(pollId)) {
-        router.push("/analyze/" + pollId)
+        router.push("/poll/" + pollId + "/results")
     } else {
         router.push("/poll/" + pollId + "/answer")
     }

@@ -51,7 +51,7 @@ async function submit() {
         query.value.toUpperCase()
     )
     if (response["status"] == "ANSWER_SUBMITTED") {
-        router.push("/analyze/" + route.params.pollId)
+        await skip()
     }
 }
 
@@ -157,7 +157,7 @@ onMounted(async () => {
                     Already answered... <br />
                     <a  
                         class="view-results" 
-                        @click="$router.push('/analyze/' + $route.params.pollId)"
+                        @click="$router.push('/poll/' + $route.params.pollId + '/results')"
                     >
                         Click here to view results...
                     </a>

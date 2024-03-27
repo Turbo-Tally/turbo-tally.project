@@ -14,7 +14,7 @@ regions = [
     { "name": "Region VII", "long": "Central Visayas", "key": "VII" },
     { "name": "Region VIII", "long": "Eastern Visayas", "key": "VIII" },
     { "name": "Region IX", "long": "Zamboange Peninsula", "key": "IX" },
-    { "name": "Region X", "long": "Northen Mindanao", "key": "X" },
+    { "name": "Region X", "long": "Northern Mindanao", "key": "X" },
     { "name": "Region XI", "long": "Davao Region", "key": "XI" },
     { "name": "Region XII", "long": "SOCCSKARGEN", "key": "XII" },
     { "name": "Region XIII", "long": "Caraga", "key": "XIII" },

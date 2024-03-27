@@ -188,7 +188,7 @@ onMounted(async () => {
                                         type="text"  
                                         style="text-align: left"
                                         disabled 
-                                        :value="userData['auth']['username']"
+                                        :value="userData['info']['username']"
                                     />
                                 </div>
                             </div>

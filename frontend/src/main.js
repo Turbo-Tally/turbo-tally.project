@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import VueApexCharts from "vue3-apexcharts"
 
 import './style.css'
 import App from './App.vue'
@@ -15,6 +16,9 @@ app.use(setupRouter())
 
 // load pinia 
 app.use(setupPinia())
+
+// load apex charts 
+app.use(VueApexCharts)
 
 // load axios (http-client)
 import "./utils/http-client"

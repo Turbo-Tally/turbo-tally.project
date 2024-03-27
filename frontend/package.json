@@ -9,13 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "apexcharts": "^3.48.0",
     "axios": "^1.6.8",
     "pinia": "^2.1.7",
     "pinia-plugin-persistedstate": "^3.2.1",
     "sass": "^1.72.0",
     "socket.io-client": "^4.7.5",
     "vue": "^3.4.19",
-    "vue-router": "^4.3.0"
+    "vue-apexcharts": "^1.6.2",
+    "vue-router": "^4.3.0",
+    "vue3-apexcharts": "^1.5.2"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",

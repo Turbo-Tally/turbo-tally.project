@@ -176,7 +176,7 @@ async function getRandomPoll() {
                                     class="result-item"
                                     v-for="poll in polls"
                                     :key="poll['_id']"
-                                    @click="$router.push('/analyze/' + poll['_id'])"
+                                    @click="$router.push('/poll/' + poll['_id'] + '/results')"
                                 >   
                                     {{ poll["title"] }}
                                 </div> 

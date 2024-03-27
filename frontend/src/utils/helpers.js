@@ -37,7 +37,13 @@ export class Helpers
             return Math.round(ago / 7) + " weeks ago"
         }
         else {
-            return Helpers.dateString(dt)
+            const date = new Date(dt) 
+            const dateString = date.toString() 
+            const tokens = dateString.split(" ") 
+            const part = tokens.slice(1, 4)
+            part[0] = part[0] + "."
+            part[1] = part[1] + ","
+            return part.join(" ")
         }
     }
 
@@ -78,5 +84,46 @@ export class Helpers
                 await cb()
             }
         });
+    }
+
+    static rekey(data, keymap, mapper = {}) {
+        const dataRekey = [] 
+        for(let i = 0; i < data.length; i++) {
+            const dataItem = data[i]
+            const dataRekeyItem = {}
+            for(let origKey in dataItem) {
+                const newKey = keymap[origKey] 
+                let value = dataItem[origKey]
+                if(newKey in mapper) {
+                    value = mapper[newKey](value)
+                }
+                dataRekeyItem[newKey] = value
+            }
+            dataRekey.push(dataRekeyItem)
+        }
+        return dataRekey
+    }
+
+    static revalue(data, valuemap, targetKey) {
+        const dataRekey = [] 
+        for(let i = 0; i < data.length; i++) {
+            const dataItem = data[i]
+            for(let key in dataItem) {
+                let value = dataItem[key]
+                if(key == targetKey)  {
+                    dataItem[key] = valuemap[value]
+                }
+            }
+            dataRekey.push(dataItem)
+        }
+        return dataRekey
+    }
+
+    static extractChoices(results) {
+        const choiceMap = {}
+        for(let result of results) {
+            choiceMap[result._id] = result.answer_count
+        }
+        return choiceMap
     }
 }

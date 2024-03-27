@@ -195,9 +195,40 @@ def voting__poll_info(poll_id):
         }
 
     # get info about polls 
-    poll = polls.read(data["poll_id"]) 
+    poll = list(polls.coll.aggregate([
+        {
+            "$match" : {
+                "_id" : data["poll_id"]
+            }
+        }, 
+        {
+            "$lookup" : {
+                "from" : "users", 
+                "localField" : "user.$id", 
+                "foreignField" : "_id", 
+                "as" : "user"
+            }
+        }, 
+        {
+            "$project" : {
+                "_id" : 1, 
+                "title" : 1, 
+                "user" : { "$arrayElemAt" : [ "$user", 0 ] }, 
+                "meta" : 1,
+                "created_at" : 1 
+            }
+        }, 
+        {
+            "$limit" : 1
+        }
+    ]))
 
-    return dumps(poll)
+    if len(poll) == 0: 
+        return {
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
+
+    return dumps(poll[0])
 
 #
 # POST /voting/polls/<poll_id>/choices
