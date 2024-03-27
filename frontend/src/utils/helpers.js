@@ -63,14 +63,9 @@ export class Helpers
         window.addEventListener(
             'scroll', 
             async () => {
-                const atBottom = 
-                    window.offsetHeight - (innerHeight + pageYOffset) <= 0;
-                if(atBottom) {
+                if ((window.innerHeight + Math.round(window.scrollY)) >= document.body.offsetHeight) {
                     await cb()
                 }
-            }, 
-            {
-                passive: true
             }
         )
     }

@@ -11,6 +11,7 @@ import { useRouter } from "vue-router"
  
 const router = useRouter()
 const mainStore = useMainStore();
+const fetched = ref(false)
 
 const inputs = ref({
     q : "", 
@@ -28,6 +29,8 @@ function resetCursor() {
 }
 
 async function fetchInputs() {
+    fetched.value = false
+
     const response = await httpClient.get("/voting/polls/browse", {
         params: inputs.value
     })
@@ -39,6 +42,8 @@ async function fetchInputs() {
         hasReachedEnd.value = true
     }
     
+    fetched.value = true 
+
     return data["data"]
 }
 
@@ -50,9 +55,20 @@ function timestamp(dt) {
 
 onMounted(async () => {
     polls.value = await fetchInputs()
+
+    Helpers.onScrollBottom(async () => {
+        if(!hasReachedEnd.value) {
+            if(polls.value != null) {
+                for(let input of await fetchInputs()) {
+                    polls.value.push(input)
+                }
+            }
+        }
+    })
 })
 
 async function newFetch() {
+    console.log("@ Fetching...")
     hasReachedEnd.value = false
     resetCursor() 
     polls.value = await fetchInputs()
@@ -68,11 +84,7 @@ async function handleClickResultCard(poll) {
     }
 }
 
-Helpers.onScrollBottom(async () => {
-    if(!hasReachedEnd.value)
-        if(polls.value != null)
-            polls.value = polls.value.concat(await fetchInputs())
-})
+
 
 </script> 
 
@@ -142,7 +154,7 @@ Helpers.onScrollBottom(async () => {
                         </div>
                     </div>  
                 </div> 
-                <div class="results">
+                <div class="results" v-if="polls.length > 0">
                     <ResultCard 
                         v-for="poll in polls"
                         @click="handleClickResultCard(poll)"
@@ -152,8 +164,10 @@ Helpers.onScrollBottom(async () => {
                         :timestamp="timestamp(poll['created_at']['$date'])"
                         :votes="poll['meta']['no_of_answers']"
                     />
-                    
-                </div>    
+                </div>
+                <div class="no-results-found" v-else-if="polls.length == 0"> 
+                    No Results Found
+                </div>     
             </div> 
          
         </DefaultLayout>
@@ -229,6 +243,19 @@ Helpers.onScrollBottom(async () => {
                     cursor: pointer;
                 }
             }
+        }
+
+        .no-results-found {
+            width: 900px; 
+            height: 300px; 
+            border: 2px solid black; 
+            background-color: rgb(234, 234, 234); 
+            color: grey;
+            margin-top: 20px; 
+            border-radius: 5px; 
+            display: flex; 
+            align-items: center;
+            justify-content: center;
         }
     }
 </style>

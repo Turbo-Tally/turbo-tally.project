@@ -190,7 +190,9 @@ class Voting:
             }
 
         else:
-            matcher = {}
+            matcher = {
+                "title" : { "$regex" : query }
+            }
 
         agg = [
             {
