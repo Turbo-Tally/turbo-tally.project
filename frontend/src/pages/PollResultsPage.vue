@@ -587,7 +587,15 @@ onMounted(async () => {
                 </div>
             </div>   
             <div class="loading" v-else> 
-                Loading Results...
+                <div class="inner">
+                    <div class="loading-icon">
+                        <img src="@/assets/loading.png" />
+                    </div>
+                    <div class="results"> 
+                        <b>Loading Results</b> <br /> 
+                        Loading Data &amp; Generating some charts...
+                    </div> 
+                </div>
             </div>  
             <Modal 
                 v-if="chartRegistry && modalShown && selectedChart" 
@@ -751,6 +759,26 @@ onMounted(async () => {
             border-radius: 5px; 
             margin: 0 auto;
             background-color: rgb(234, 234, 234);
+
+            .inner {
+                text-align: center;
+
+                .loading-icon { 
+                    margin-bottom: 20px;
+                    img {
+                        width: 50px;
+                    }
+                }
+
+                .loading-icon {
+                    -webkit-animation: rotation 1s infinite linear;
+                }
+
+                @-webkit-keyframes rotation {
+                    from {-webkit-transform: rotate(0deg);}
+                    to   {-webkit-transform: rotate(359deg);}
+                }
+            }
         }
 
         .select-province {
