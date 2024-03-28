@@ -239,7 +239,7 @@ onMounted(async () => {
 
                         <!-- Answers by Region & Age (Heatmap Chart) -->
                         <template v-slot:partition-17-title> 
-                            Answers by Region &amp; Gender (Heatmap Chart)
+                            Answers by Region &amp; Age (Heatmap Chart)
                         </template> 
                         <template v-slot:partition-17-content> 
                             Hello, 1
