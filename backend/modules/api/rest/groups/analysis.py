@@ -30,12 +30,7 @@ from modules.main.analysis import Analyzer
 analysis_blueprint = \
     Blueprint('analysis', __name__, template_folder="./templates")
 
-#
-# GET /analysis/polls/<poll_id> 
-# 
-@analysis_blueprint.route("/polls/<poll_id>", methods=["GET"]) 
-def analysis__poll(poll_id):
-    # validate arguments 
+def validate_poll_id(poll_id):
     poll_id = int(poll_id) 
     data = {}
     data["poll_id"] = poll_id 
@@ -46,49 +41,112 @@ def analysis__poll(poll_id):
 
     v = Validator(schema)
     v.validate(data) 
+    
+    return poll_id
+
+#
+# GET /analyze/<poll_id>/choices
+# 
+@analysis_blueprint.route("/<poll_id>/choices", methods=["GET"]) 
+def analysis__choices(poll_id):
+    # validate arguments 
+    poll_id = validate_poll_id(poll_id)
 
     # check if poll does not exist
-    if not Voting.does_poll_exist(data["poll_id"]):
+    if not Voting.does_poll_exist(poll_id):
         return { 
             "status" : "POLL_DOES_NOT_EXIST"
         }
 
-    # get results for poll 
-    results = Analyzer.analyze_poll(poll_id)    
+    # get choices of poll 
+    results = Analyzer.choices(poll_id)
 
     return dumps(results)
 
 
-# GET /analysis/polls/<poll_id>/province/<province_id>
+#
+# GET /analyze/<poll_id>/answers-per-day 
 # 
-@analysis_blueprint.route("/polls/<poll_id>/province/<province_id>", methods=["GET"]) 
-def analysis__poll_province(poll_id, province_id):
+@analysis_blueprint.route("/<poll_id>/answers-per-day", methods=["GET"]) 
+def analysis__answers_per_day(poll_id): 
     # validate arguments 
-    poll_id = int(poll_id) 
-    province_id = province_id
-
-    data = {}
-    data["poll_id"] = poll_id 
-    data["province_id"] = province_id
-
-    schema = {
-        "poll_id" : { "type" : "integer" }, 
-        "province_id" : formats["province"] 
-    }
-
-    v = Validator(schema)
-    v.validate(data) 
+    poll_id = validate_poll_id(poll_id)
 
     # check if poll does not exist
-    if not Voting.does_poll_exist(data["poll_id"]):
+    if not Voting.does_poll_exist(poll_id):
         return { 
             "status" : "POLL_DOES_NOT_EXIST"
         }
 
     # get results for poll 
-    results = Analyzer.analyze_poll_province(
-        data["poll_id"], 
-        data["province_id"]
-    )    
+    results = Analyzer.answers_per_day(poll_id)    
+
+    return dumps(results)
+
+
+#
+# GET /analyze/<poll_id>/answers-by-choice
+# 
+@analysis_blueprint.route("/<poll_id>/answers-by-choice", methods=["GET"]) 
+def analysis__answers_by_choice(poll_id): 
+    # validate arguments 
+    poll_id = validate_poll_id(poll_id)
+
+    # check if poll does not exist
+    if not Voting.does_poll_exist(poll_id):
+        return { 
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
+
+    # get results for poll 
+    results = Analyzer.answers_by_choice(poll_id)    
+
+    return dumps(results)
+
+
+#
+# GET /analyze/<poll_id>/answers-by/<type_>
+# 
+@analysis_blueprint.route("/<poll_id>/answers-by/<type_>", methods=["GET"]) 
+def analysis__answers_by(poll_id, type_): 
+    # validate arguments 
+    poll_id = validate_poll_id(poll_id)
+
+    # check if poll does not exist
+    if not Voting.does_poll_exist(poll_id):
+        return { 
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
+
+    # get results for poll 
+    if type_ == "age": 
+        type_ = "$user__age"
+    else: 
+        type_ = "$user.info." + type_ 
+    results = Analyzer.answers_by(poll_id, type_)    
+
+    return dumps(results)
+
+
+#
+# GET /analyze/<poll_id>/stacked-by/<type_>
+# 
+@analysis_blueprint.route("/<poll_id>/stacked-by/<type_>", methods=["GET"]) 
+def analysis__stacked_by(poll_id, type_): 
+    # validate arguments 
+    poll_id = validate_poll_id(poll_id)
+
+    # check if poll does not exist
+    if not Voting.does_poll_exist(poll_id):
+        return { 
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
+
+    # get results for poll 
+    if type_ == "age": 
+        type_ = "$user__age"
+    else: 
+        type_ = "$user.info." + type_ 
+    results = Analyzer.stacked_by(poll_id, type_)    
 
     return dumps(results)

@@ -29,7 +29,7 @@ RUN . $NVM_DIR/nvm.sh && \
     npm install -g nodemon
 
 # activate virtual environment
-RUN . /home/turbo_tally.backend/env/bin/activate
+# RUN . /home/turbo_tally.backend/env/bin/activate  
 
 # export paths
 ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules

@@ -6,7 +6,7 @@ from modules.core.logging import Logger
 Logger.clear_all("api")
 
 #
-# Pre-initialization...
+# Pre-initialization.
 # 
 import utils.preloader
 
