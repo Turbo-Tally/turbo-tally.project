@@ -108,7 +108,7 @@ onMounted(async () => {
                     </table> 
                 </div> 
                 <div class="results"> 
-                    <Accordion class="charts" :itemsLength="14">
+                    <Accordion class="charts" :itemsLength="17">
                         <!-- Total Answers Over Time -->
                         <template v-slot:partition-1-title> 
                             Total Answers Over Time (Line Graph)
@@ -213,11 +213,35 @@ onMounted(async () => {
                             Hello, 1
                         </template> 
 
-                        <!-- Answers by Age & Gender (Heatmap Chart) -->
+                        <!-- Answers by Region (Treemap Chart) -->
                         <template v-slot:partition-14-title> 
-                            Answers by Age &amp; Gender (Heatmap Chart)
+                            Answers by Region (Treemap Chart)
                         </template> 
                         <template v-slot:partition-14-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Age & Gender (Heatmap Chart) -->
+                        <template v-slot:partition-15-title> 
+                            Answers by Age &amp; Gender (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-15-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Region & Gender (Heatmap Chart) -->
+                        <template v-slot:partition-16-title> 
+                            Answers by Region &amp; Gender (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-16-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Region & Age (Heatmap Chart) -->
+                        <template v-slot:partition-17-title> 
+                            Answers by Region &amp; Gender (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-17-content> 
                             Hello, 1
                         </template> 
                     </Accordion>
