@@ -45,16 +45,16 @@ class Analyzer:
         ]
     }
 
-    def revalue_generic(context, category): 
+    def revalue_generic(context, category, key = "key"): 
         if category == "$user.info.gender": 
-            revalue(context, "key", {
+            revalue(context, key, {
                 "M" : "MALE",
                 "F" : "FEMALE"
             })
         elif category == "$user.info.region": 
-            revalue(context, "key", region_map)
+            revalue(context, key, region_map)
         elif category == "$user.info.province": 
-            revalue(context, "key", province_map)
+            revalue(context, key, province_map)
 
 
     def dal(poll_id, aside_query = []):
@@ -205,3 +205,35 @@ class Analyzer:
         Analyzer.revalue_generic(stacked_by, category)
 
         return stacked_by
+
+    def paired_map(poll_id, category_a, category_b): 
+        paired_map = list(Analyzer.dal(poll_id, [
+            {
+                "$group" : {
+                    "_id" : {
+                        "key_a" : category_a, 
+                        "key_b" : category_b,
+                        "answer" : "$answer"
+                    }, 
+                    "count" : { "$sum" : 1 }
+                }
+            }, 
+            { 
+                "$project" : {
+                    "_id" : 0,
+                    "key_a"   : "$_id.key_a", 
+                    "key_b"   : "$_id.key_b", 
+                    "subkey" : "$_id.answer", 
+                    "count" : 1
+                }
+            }
+        ]))
+
+        paired_map.sort(key=lambda e: 
+            (e["key_a"], e["key_b"], e["subkey"])
+        )
+
+        Analyzer.revalue_generic(paired_map, category_a, "key_a")
+        Analyzer.revalue_generic(paired_map, category_b, "key_b")
+
+        return paired_map

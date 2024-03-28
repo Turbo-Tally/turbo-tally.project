@@ -25,6 +25,18 @@ const fetched = ref(false)
 
 const selectedChart = ref("")
 
+const resultEndpoints = ref({
+    "answers-per-day" : false, 
+    "answers-by-age" : false,
+    "answers-by-gender" : false,
+    "answers-by-region" : false,
+    "answers-by-province" : false, 
+    "stacked-by-age" : false, 
+    "stacked-by-gender" : false, 
+    "stacked-by-region" : false, 
+    "stacked-by-province" : false 
+})
+
 async function getInfo() {
     poll.value = await Poll.getInfo(route.params.pollId)
 }
@@ -201,7 +213,7 @@ onMounted(async () => {
                             Hello, 1
                         </template> 
 
-                        <!-- Answers by Province (Heatmap Chart) -->
+                        <!-- Answers by Age & Gender (Heatmap Chart) -->
                         <template v-slot:partition-14-title> 
                             Answers by Age &amp; Gender (Heatmap Chart)
                         </template> 

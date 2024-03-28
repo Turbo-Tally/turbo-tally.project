@@ -150,3 +150,34 @@ def analysis__stacked_by(poll_id, type_):
     results = Analyzer.stacked_by(poll_id, type_)    
 
     return dumps(results)
+
+
+#
+# GET /analyze/<poll_id>/paired-map/<type_a>/<type_b>
+# 
+@analysis_blueprint.route("/<poll_id>/paired-map/<type_a>/<type_b>", methods=["GET"]) 
+def analysis__paired_map(poll_id, type_a, type_b): 
+    # validate arguments 
+    poll_id = validate_poll_id(poll_id)
+
+    # check if poll does not exist
+    if not Voting.does_poll_exist(poll_id):
+        return { 
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
+
+    # get results for poll 
+    if type_a == "age": 
+        type_a = "$user__age"
+    else: 
+        type_a = "$user.info." + type_a
+    
+    if type_b == "age": 
+        type_b = "$user__age"
+    else: 
+        type_b = "$user.info." + type_b
+        
+
+    results = Analyzer.paired_map(poll_id, type_a, type_b)    
+
+    return dumps(results)
