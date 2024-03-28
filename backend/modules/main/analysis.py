@@ -170,7 +170,7 @@ class Analyzer:
             }
         ]))
 
-        answers_by.sort(key=lambda e: e["_id"])
+        answers_by.sort(key=lambda e: e["key"])
 
         Analyzer.revalue_generic(answers_by, category)
 
