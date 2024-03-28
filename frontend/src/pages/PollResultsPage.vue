@@ -12,6 +12,7 @@ import { ref, watch, onMounted, shallowRef } from "vue"
 import { useRoute } from  "vue-router"
 import { Helpers } from "@/utils/helpers.js"
 import Modal from "@/components/Modal.vue"
+import Accordion from "@/components/Accordion.vue"
 
 
 const poll = ref({})
@@ -29,7 +30,7 @@ async function getInfo() {
 }
 
 async function getResults() {
-    results.value = await Poll.getNormalizedResults(route.params.pollId)
+    // get results for polls
 }
 
 async function getData() {
@@ -42,11 +43,11 @@ async function getData() {
 async function enlargeChart(name) {
     modalShown.value = true 
     selectedChart.value = name
-    console.log(selectedChart)
 }
 
 
 let chartRegistry = shallowRef(null)
+let chartData = {}
 
 watch(() => route.params.pollId, async () => {
     await getData()
@@ -54,20 +55,6 @@ watch(() => route.params.pollId, async () => {
 
 onMounted(async () => {
     await getData()
-
-    let chartData = {}
-
-    chartRegistry.value = {
-        // "total-per-day-answers.line-chart" : {
-        //     component: LineChart, 
-        //     props: {
-        //         width: 760,
-        //         height: 150,
-        //         ...chartData["total-per-day-answers.line-chart"]
-        //     }
-        // },
-    }
-   
 })
 
 </script> 
@@ -75,7 +62,7 @@ onMounted(async () => {
 <template> 
     <div class="poll-results-page"> 
         <DefaultLayout>
-            <div class="poll-results-content" v-if="fetched && chartRegistry"> 
+            <div class="poll-results-content"> 
                 <div class="title">
                     <h1>{{ poll.title }}</h1>
                 </div>
@@ -108,212 +95,122 @@ onMounted(async () => {
                         </tr>
                     </table> 
                 </div> 
-                <div class="results" v-if="fetched"> 
-                    <div class="per-day-answers" style="margin-top: 30px">
-                        <b>Per Day Answers</b>
-                    </div> 
-                    <div 
-                        class="line-chart__total-per-day chart" style="margin-top: 10px"
-                        @dblclick="enlargeChart('total-per-day-answers.line-chart')"
-                    >
-                        <component
-                            :is="chartRegistry['total-per-day-answers.line-chart:SMALL'].component"
-                            v-bind="chartRegistry['total-per-day-answers.line-chart:SMALL'].props" 
-                        />
-                    </div>
-                    <div 
-                        class="line-chart__per-day chart" style="margin-top: 10px"
-                        @dblclick="enlargeChart('per-day-answers.line-chart')"
-                    >
-                        <component
-                            :is="chartRegistry['per-day-answers.line-chart:SMALL'].component"
-                            v-bind="chartRegistry['per-day-answers.line-chart:SMALL'].props" 
-                        />
-                    </div>
+                <div class="results"> 
+                    <Accordion class="charts" :itemsLength="14">
+                        <!-- Total Answers Over Time -->
+                        <template v-slot:partition-1-title> 
+                            Total Answers Over Time (Line Graph)
+                        </template> 
+                        <template v-slot:partition-1-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers Over Time -->
+                        <template v-slot:partition-2-title> 
+                            Answers Over Time (Line Graph)
+                        </template> 
+                        <template v-slot:partition-2-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Choice (Pie Chart) -->
+                        <template v-slot:partition-3-title> 
+                            Answers by Choice (Pie Chart)
+                        </template> 
+                        <template v-slot:partition-3-content> 
+                            Hello, 1
+                        </template> 
                     
-                    <div class="all-answers-header">
-                        <b>All Answers</b>
-                    </div> 
-                    <div class="all-answers-results">
-                        <div 
-                            class="pie-chart chart"
-                            @dblclick="enlargeChart('all-answers.pie-chart')"
-                        >
-                            <component
-                                :is="chartRegistry['all-answers.pie-chart:SMALL'].component"
-                                v-bind="chartRegistry['all-answers.pie-chart:SMALL'].props" 
-                            />
-                        </div> 
-                        <div 
-                            class="bar-chart chart"
-                            @dblclick="enlargeChart('all-answers.bar-chart')"
-                        > 
-                            <component
-                                :is="chartRegistry['all-answers.bar-chart:SMALL'].component"
-                                v-bind="chartRegistry['all-answers.bar-chart:SMALL'].props" 
-                            />
-                        </div> 
-                        <div 
-                            class="funnel-chart chart"
-                            @dblclick="enlargeChart('all-answers.funnel-chart')"
-                        > 
-                            <component
-                                :is="chartRegistry['all-answers.funnel-chart:SMALL'].component"
-                                v-bind="chartRegistry['all-answers.funnel-chart:SMALL'].props" 
-                            />
-                        </div> 
-                    </div> 
-                    <div class="categorized-results">
-                        <div class="pie-chart">
-                            <div class="header"> 
-                                By Age
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.age.pie-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.age.pie-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.age.pie-chart:SMALL'].props" 
-                                />
-                            </div>
-                        </div> 
-                        <div class="pie-chart"> 
-                            <div class="header"> 
-                                By Region
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.region.pie-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.region.pie-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.region.pie-chart:SMALL'].props" 
-                                />
-                            </div>
-                        </div> 
-                        <div class="pie-chart"> 
-                            <div 
-                                class="header"
-                            > 
-                                By Gender
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.gender.pie-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.gender.pie-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.gender.pie-chart:SMALL'].props" 
-                                />
-                            </div>
-                        </div> 
-                    </div>
-                    <div class="categorized-results">
-                        <div class="stacked-bar-chart">
-                            <div class="header"> 
-                                Stacked Bar Chart (age)
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.age.stacked-bar-chart')"
-                            > 
-                                <component
-                                        :is="chartRegistry['all-answers.age.stacked-bar-chart:SMALL'].component"
-                                        v-bind="chartRegistry['all-answers.age.stacked-bar-chart:SMALL'].props"
-                                    context="age" 
-                                />
-                            </div>
-                        </div> 
-                        <div class="stacked-bar-chart"> 
-                            <div class="header"> 
-                                Stacked Bar Chart (region)
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.region.stacked-bar-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.region.stacked-bar-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.region.stacked-bar-chart:SMALL'].props"
-                                    context="region" 
-                                />
-                            </div>
-                        </div> 
-                        <div class="stacked-bar-chart"> 
-                            <div 
-                                class="header"
-                            > 
-                                Stacked Bar Chart (gender)
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.gender.stacked-bar-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.gender.stacked-bar-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.gender.stacked-bar-chart:SMALL'].props"
-                                    context="gender" 
-                                />
-                            </div>
-                        </div> 
-                    </div>
-                    <div class="categorized-results">
-                        <div class="pie-chart">
-                            <div class="header"> 
-                                Pie Chart (province)
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.provinces.pie-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.provinces.pie-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.provinces.pie-chart:SMALL'].props" 
-                                />
-                            </div>
-                        </div> 
-                        <div class="bar-chart"> 
-                            <div class="header"> 
-                                Stacked Bar Chart (province)
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.provinces.stacked-bar-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.provinces.stacked-bar-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.provinces.stacked-bar-chart:SMALL'].props" 
-                                    context="province"
-                                />
-                            </div>
-                        </div> 
-                    </div>
-                  
-                </div>
-            </div>   
-            <div class="loading" v-else> 
-                <div class="inner">
-                    <div class="loading-icon">
-                        <img src="@/assets/loading.png" />
-                    </div>
-                    <div class="results"> 
-                        <b>Loading Results</b> <br /> 
-                        Loading Data &amp; Generating some charts...
-                    </div> 
-                </div>
-            </div>  
-            <Modal 
-                v-if="chartRegistry && modalShown && selectedChart" 
-                @close="modalShown = false"
-                :title="selectedChart"
-                :width="chartRegistry[selectedChart + ':BIG'].props.width"
-            >   
-                <component 
-                    :is="chartRegistry[selectedChart  + ':BIG'].component"
-                    v-bind="chartRegistry[selectedChart + ':BIG'].props"
-                /> 
-            </Modal> 
+                        <!-- Answers by Choice (Bar Chart) -->
+                        <template v-slot:partition-4-title> 
+                            Answers by Choice (Bar Chart)
+                        </template> 
+                        <template v-slot:partition-4-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Choice (Funnel Chart) -->
+                        <template v-slot:partition-5-title> 
+                            Answers by Age (Funnel Chart)
+                        </template> 
+                        <template v-slot:partition-5-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Gender (Pie Chart) -->
+                        <template v-slot:partition-6-title> 
+                            Answers by Gender (Pie Chart)
+                        </template> 
+                        <template v-slot:partition-6-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Age (Pie Chart) -->
+                        <template v-slot:partition-7-title> 
+                            Answers by Age (Pie Chart)
+                        </template> 
+                        <template v-slot:partition-7-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Region (Pie Chart) -->
+                        <template v-slot:partition-8-title> 
+                            Answers by Region (Pie Chart)
+                        </template> 
+                        <template v-slot:partition-8-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Province (Pie Chart) -->
+                        <template v-slot:partition-9-title> 
+                            Answers by Province (Pie Chart)
+                        </template> 
+                        <template v-slot:partition-9-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Gender (Stacked Bar Chart) -->
+                        <template v-slot:partition-10-title> 
+                            Answers by Gender (Stacked Bar Chart)
+                        </template> 
+                        <template v-slot:partition-10-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Gender (Stacked Bar Chart) -->
+                        <template v-slot:partition-11-title> 
+                            Answers by Age (Stacked Bar Chart)
+                        </template> 
+                        <template v-slot:partition-11-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Region (Stacked Bar Chart) -->
+                        <template v-slot:partition-12-title> 
+                            Answers by Region (Stacked Bar Chart)
+                        </template> 
+                        <template v-slot:partition-12-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Province (Stacked Bar Chart) -->
+                        <template v-slot:partition-13-title> 
+                            Answers by Region (Stacked Bar Chart)
+                        </template> 
+                        <template v-slot:partition-13-content> 
+                            Hello, 1
+                        </template> 
+
+                        <!-- Answers by Province (Heatmap Chart) -->
+                        <template v-slot:partition-14-title> 
+                            Answers by Age &amp; Gender (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-14-content> 
+                            Hello, 1
+                        </template> 
+                    </Accordion>
+                </div> 
+            </div>
         </DefaultLayout>
     </div> 
 </template> 
@@ -358,98 +255,8 @@ onMounted(async () => {
             }
 
             .results {
-                .line-chart__total-per-day {
-                    width: 100%;
-                    height: 150px;
-                    margin-top: 30px;
-                    border: 2px solid black;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                } 
-
-                .line-chart__per-day {
-                    width: 100%;
-                    height: 150px;
-                    margin-top: 30px;
-                    border: 2px solid black;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                } 
-
-                .all-answers-header {
-                    margin-top: 50px;
-                }
-
-                .all-answers-results {
-                    display: flex;
-                    gap: 10px; 
-
-                    > div {
-                        margin-top: 15px;
-                        flex: 1; 
-                        border: 2px solid black;
-                        height: 200px;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center; 
-                        align-items: center; 
-                    }
-                }
-
-
-                .categorized-results {
-                    display: flex;
-                    gap: 10px; 
+                .charts {
                     margin-top: 20px;
-
-                    > div {
-                        margin-top: 15px;
-                        flex: 1; 
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center; 
-                        align-items: center; 
-
-                        > .header {
-                            text-align: left;
-                            width: 100%;
-                            margin-bottom: 10px;
-                            font-weight: bold;
-                        }
-
-                        > .chart {
-                            border: 2px solid black;
-                            height: 200px;
-                            width: 100%;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            text-align: center;
-                        }
-                    }
-                }
-
-                .by-province {
-                    display: flex;
-                    gap: 10px; 
-                    margin-top: 20px;
-
-                    > .content {
-                        margin-top: 30px;
-                        display: flex;
-                        flex-direction: row;
-                        justify-content: center; 
-                        align-items: center; 
-                        gap: 5px;
-                        width: 245px;
-                        gap: 5px;
-                        margin-left: 5px;
-                       
-                    }
-
-                    
                 }
             }
 
