@@ -96,7 +96,7 @@ async function getRandomPoll() {
     const response = await httpClient.get("/voting/random-poll") 
     const data = response.data 
     const pollId = data["_id"] 
-    router.push("/polls/" + pollId + "/answer")
+    router.push("/poll/" + pollId + "/answer")
 }
 
 </script> 

@@ -13,6 +13,9 @@ from modules.repositories.users import users
 from datetime import datetime
 from modules.common.formats import datetime_format
 from modules.core.database import db_base
+from datetime import time
+
+from modules.api.api_server import APIServer
 
 import re
 
@@ -112,6 +115,13 @@ class Voting:
                 { "_id" : poll_id }, 
                 { "$inc" : { "meta.no_of_answers" : 1 }},
                 session=session
+            )
+
+            # emit event in socket-io 
+            from modules.main.common import Common
+
+            Common.socket_io.emit(
+                'should-update', str(poll_id), to="poll." + str(poll_id)
             )
 
             return inserted_id 

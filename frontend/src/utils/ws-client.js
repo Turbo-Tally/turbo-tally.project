@@ -18,4 +18,12 @@ wsClient.on("reconnect_attempt", () => {
     console.log("> WS Client : Reconnecting to back-end server...")
 })
 
+export function joinRoom(roomId) {
+    wsClient.emit("join", roomId)
+}
+
+export function leaveRoom(roomId) {
+    wsClient.emit("leave", roomId)
+}
+
 window.wsClient = wsClient;

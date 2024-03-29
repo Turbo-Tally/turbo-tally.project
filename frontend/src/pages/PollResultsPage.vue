@@ -11,11 +11,13 @@ import HeatMapChart from "@/components/charts/HeatMapChart.vue"
 import { Locations } from "@/utils/locations.js"
 import DefaultLayout from "../layouts/DefaultLayout.vue"
 import { Poll } from "@/utils/poll.js"
-import { ref, watch, onMounted, shallowRef } from "vue"
+import { ref, watch, onMounted, shallowRef, onUnmounted } from "vue"
 import { useRoute } from  "vue-router"
 import { Helpers } from "@/utils/helpers.js"
 import Modal from "@/components/Modal.vue"
 import Accordion from "@/components/Accordion.vue"
+
+import { joinRoom, leaveRoom, wsClient } from "@/utils/ws-client.js"
 
 
 const poll = ref({})
@@ -79,8 +81,36 @@ watch(() => route.params.pollId, async () => {
     await getData()
 })
 
+const paused = ref(false);
+
+let shouldRefresh = false;
+
+setInterval(async () => {
+    paused.value = false;
+    if(shouldRefresh) {
+        await getData()
+        shouldRefresh = false
+    }
+}, 1000)
+
+async function update() {
+    if(paused.value) {
+        shouldRefresh = true;
+        return 
+    }
+    await getData();
+    paused.value = true
+}
+
 onMounted(async () => {
     await getData()
+    joinRoom("poll." + route.params.pollId)
+    wsClient.on("should-update", update)
+})
+
+onUnmounted(async () => {
+    leaveRoom("poll." + route.params.pollId)
+    wsClient.off("should-update", update)
 })
 
 const pollId = ref(route.params.pollId) 

@@ -109,7 +109,11 @@ def voting__answer_poll(poll_id):
         }
  
     # check if poll has already been answered 
-    user = request.app["user"]
+    user = None 
+
+    if "user" in request.app:
+        user = request.app["user"]
+
     if user is None: 
         return { 
             "status" : "NOT_LOGGED_IN"
