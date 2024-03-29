@@ -124,6 +124,11 @@ class Voting:
                 'should-update', str(poll_id), to="poll." + str(poll_id)
             )
 
+            Common.socket_io.emit(
+                'new-update', dumps(Voting.recent_answers()), to="recent-answers"
+            )
+
+
             return inserted_id 
 
     def get_answered_polls(user): 

@@ -54,10 +54,10 @@ def auth__sign_up():
             "gender" : data["gender"], 
             "region" : data["region"],
             "province" : data["province"],
-            "mobile_no" : data["mobile_no"]
+            "mobile_no" : data["mobile_no"],
+            "username" : data["username"]
         }, 
         "auth" : {
-            "username" : data["username"],
             "email" : data["email"], 
             "password_hash" : auth.hash(data["password"]),
             "is_admin" : False, 

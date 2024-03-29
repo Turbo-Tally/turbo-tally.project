@@ -1,12 +1,13 @@
 <script setup> 
 
-import { nextTick, onMounted, ref } from "vue"
+import { nextTick, onMounted, onUnmounted, ref } from "vue"
 import DefaultLayout from "../layouts/DefaultLayout.vue"
 
 import StatCard from "@/components/StatCard.vue"
 import EventReel from "@/components/EventReel.vue"
 
 import { httpClient } from "@/utils/http-client.js" 
+import { joinRoom, leaveRoom, wsClient } from "@/utils/ws-client.js"
 
 const totalNoOfPolls = ref("-") 
 const totalNoOfAnswerees = ref("-") 
@@ -33,7 +34,18 @@ onMounted(async () => {
     totalAverageAnswers.value = await fetchCount("average-answers")   
 
     recentAnswers.value = await getRecentAnswers()
+
+    joinRoom("recent-answers")
+    wsClient.on("new-update", (data) => {
+        recentAnswers.value = JSON.parse(data)
+    })
 })
+
+
+onUnmounted(async () => {
+    joinRoom("recent-answers")
+})
+
 
 </script> 
 
