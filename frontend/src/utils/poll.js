@@ -37,4 +37,10 @@ export class Poll
         const data = response.data 
         return data["status"] == "ALREADY_ANSWERED"
     }
+
+    static async getResults(pollId, endpoint, args) {
+        return await httpClient.get(`/analysis/${pollId}/${endpoint}`, {
+            params: args
+        })
+    }
 }

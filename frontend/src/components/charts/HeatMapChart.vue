@@ -1,30 +1,27 @@
 <script setup> 
 import { ref } from "vue"
 
-const props = defineProps([ "data", "width", "height" ])
+const props = defineProps([ "data", "width", "height", "labels" ])
 
 const options = ref({
-    xaxis : {
-        type : "datetime"
-    },
     legend : {
-        position : "top"
-    }
+        show: true
+    },
+    chart: {
+        type: 'heatmap'
+    },
+    colors: ["#008FFB"],
+    labels: props.labels
 })
 
-const series = ref([
-    {
-        name: "TOTAL", 
-        data: props.data
-    }
-])
+const series = ref(props.data)
 
 </script> 
 
 <template> 
-    <div class="line-chart"> 
+    <div class="heatmap-chart"> 
         <apexchart
-            type="line"
+            type="heatmap"
             :width="props.width"
             :height="props.height"
             :options="options"
@@ -34,6 +31,7 @@ const series = ref([
 </template> 
 
 <style lang="scss" scoped> 
-    .line-chart {     
+    .heatmap-chart {
+        margin-top: 0px;
     }
 </style> 

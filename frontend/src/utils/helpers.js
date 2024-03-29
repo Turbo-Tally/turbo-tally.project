@@ -114,11 +114,71 @@ export class Helpers
         return dataRekey
     }
 
-    static extractChoices(results) {
-        const choiceMap = {}
+    static extractLabels(results) {
+        const choices = []
         for(let result of results) {
-            choiceMap[result._id] = result.answer_count
+            choices.push(result["key"])
         }
-        return choiceMap
+        return choices
+    }
+
+
+    static extractCounts(results) {
+        const counts = []
+        for(let result of results) {
+            counts.push(result["count"])
+        }
+        return counts
+    }
+
+    static normalizedPairedMap(rawData) {
+        const formedData = {} 
+        let subkeys = new Set()
+
+        for(let i = 0; i < rawData.length; i++) {
+            let item = rawData[i] 
+            const key_a = item["key_a"]
+            const key_b = item["key_b"]
+            const count = item["count"]
+
+            if(!(key_a in formedData)) {
+                formedData[key_a] = {}
+            }
+
+            subkeys.add(key_b)
+
+            formedData[key_a][key_b] = count
+        }
+
+        const normData = [] 
+
+        subkeys = Array.from(subkeys)
+    
+        for(let key_a in formedData) {
+            const items = []
+            for(let key_b in formedData[key_a]) {
+                // items.push({ x: key_b, y: formedData[key_a][key_b]})
+                items.push(formedData[key_a][key_b])
+            }
+
+            for(let subkey of subkeys) {
+                if (!(subkey in formedData[key_a])) {
+                    // items.push({
+                    //     x: subkey, 
+                    //     y: 0
+                    // })
+                    items.push(0)
+                }
+            }
+            
+            normData.push({
+                name: key_a, 
+                data: items
+            })
+        }
+
+        console.log(normData)
+
+        return { data: normData, labels: subkeys }
     }
 }

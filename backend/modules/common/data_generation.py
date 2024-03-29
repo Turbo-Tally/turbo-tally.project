@@ -34,7 +34,7 @@ def generate_random_user():
             "gender" : random.choice(["M", "F"]), 
             "birthdate" : 
                 datetime.strptime(
-                    faker.date_of_birth(minimum_age=18)\
+                    faker.date_of_birth(minimum_age=18, maximum_age=100)\
                          .strftime(datetime_format),
                     datetime_format
                 ),

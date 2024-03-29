@@ -4,8 +4,11 @@ import FunnelChart from "@/components/charts/FunnelChart.vue"
 import HorizontalBarChart from "@/components/charts/HorizontalBarChart.vue" 
 import HorizontalStackedBarChart from "@/components/charts/HorizontalStackedBarChart.vue" 
 import LineChart from "@/components/charts/LineChart.vue" 
-import PieChart from "@/components/charts/PieChart.vue"
+import DonutChart from "@/components/charts/DonutChart.vue"
+import LinesChart from "@/components/charts/LinesChart.vue"
+import HeatMapChart from "@/components/charts/HeatMapChart.vue"
 
+import { Locations } from "@/utils/locations.js"
 import DefaultLayout from "../layouts/DefaultLayout.vue"
 import { Poll } from "@/utils/poll.js"
 import { ref, watch, onMounted, shallowRef } from "vue"
@@ -23,40 +26,51 @@ const modalShown = ref(false)
 const route = useRoute()
 const fetched = ref(false)
 
-const selectedChart = ref("")
+const selectedChart = ref(0)
+const selectedRegion = ref("NCR")
+const resultEndpoint = ref(null)
 
-const resultEndpoints = ref({
-    "answers-per-day" : false, 
-    "answers-by-age" : false,
-    "answers-by-gender" : false,
-    "answers-by-region" : false,
-    "answers-by-province" : false, 
-    "stacked-by-age" : false, 
-    "stacked-by-gender" : false, 
-    "stacked-by-region" : false, 
-    "stacked-by-province" : false 
+const data = ref({})
+const labels = ref({})
+const args = ref({
+    filter_field : "user.info.region",
+    filter_value : "NCR"
 })
 
 async function getInfo() {
     poll.value = await Poll.getInfo(route.params.pollId)
 }
 
-async function getResults() {
-    // get results for polls
+function clearEndpoints() { 
+    resultEndpoint.value = null
 }
 
+function setEndpoint(key) {
+    resultEndpoint.value = key 
+}
+
+
 async function getData() {
-    fetched.value = false
+    fetched.value = false 
     await getInfo() 
     await getResults()
     fetched.value = true
 }
 
-async function enlargeChart(name) {
-    modalShown.value = true 
-    selectedChart.value = name
-}
 
+async function getResults() {
+    const endpoint = reports[selectedChart.value]["endpoint"]
+    const filter = reports[selectedChart.value]["filter"]
+    let filterer = {} 
+
+    if(filter) {
+        filterer = args.value
+    }
+
+    const fetchedData = 
+        (await Poll.getResults(pollId.value, endpoint, filterer)).data  
+    reports[selectedChart.value].normalize(fetchedData)
+}
 
 let chartRegistry = shallowRef(null)
 let chartData = {}
@@ -68,6 +82,240 @@ watch(() => route.params.pollId, async () => {
 onMounted(async () => {
     await getData()
 })
+
+const pollId = ref(route.params.pollId) 
+
+const reports = [
+    { 
+        title : "line.total-answers-over-time", 
+        endpoint : "answers-per-day", 
+        normalize : (rawData) => {
+            let total = 0
+
+            for(let i = 0; i < rawData.length; i++) {
+                total += rawData[i]["count"]
+                rawData[i]["count"] = total
+            }
+
+            data.value =  Helpers.rekey(rawData, {
+                "key" : "x", 
+                "count" : "y"
+            }, {
+                "x" : (v) => new Date(v)
+            })
+        }
+    }, 
+    {
+        title : "line.answers-over-time",
+        endpoint : "answers-per-day", 
+        normalize : (rawData) => {
+            data.value =  Helpers.rekey(rawData, {
+                "key" : "x", 
+                "count" : "y"
+            }, {
+                "x" : (v) => new Date(v)
+            })
+        }
+    }, 
+    {
+        title : "line.answers-per-day-choices",
+        endpoint : "answers-per-day/choices", 
+        normalize : (rawData) => {
+            const formedData = {} 
+            const total = {}
+
+            for(let i = 0; i < rawData.length; i++) {
+                let item = rawData[i] 
+                const answer = item["subkey"]
+                const date = item["key"]
+                const count = item["count"]
+
+                if(!(answer in formedData)) {
+                    formedData[answer] = []
+                    total[answer] = 0
+                }
+
+                total[answer] += count
+
+                formedData[answer].push({
+                    x : new Date(date), 
+                    y : total[answer]
+                })
+
+            }
+
+            const normData = [] 
+
+
+            for(let key in formedData) {
+                normData.push({
+                    name: key, 
+                    data: formedData[key]
+                })
+            }
+
+            console.log(normData)
+
+            data.value = normData
+        }
+    }, 
+    {
+        title : "pie.answers-by-choice", 
+        endpoint : "answers-by-choice", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "bar.answers-by-choice", 
+        endpoint : "answers-by-choice", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "funnel.answers-by-age", 
+        endpoint : "answers-by/age", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "pie.answers-by-gender",
+        endpoint : "answers-by/gender", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "pie.answers-by-age", 
+        endpoint : "answers-by/age", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }   
+    }, 
+    {
+        title : "pie.answers-by-region", 
+        endpoint : "answers-by/region", 
+        normalize : (rawData) => {
+           labels.value = Helpers.extractLabels(rawData)
+           data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "pie.answers-by-province", 
+        endpoint : "answers-by/province", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "stacked-bar.answers-by-gender", 
+        endpoint : "stacked-by/gender", 
+        normalize : (rawData) => {
+            data.value = rawData
+        }
+    }, 
+    {
+        title : "stacked-bar.answers-by-age",
+        endpoint : "stacked-by/age", 
+        normalize : (rawData) => {
+            data.value = rawData
+        }
+    }, 
+    {
+        title : "stacked-bar.answers-by-region", 
+        endpoint : "stacked-by/region",
+        normalize : (rawData) => {
+            data.value = rawData
+        }
+    }, 
+    {
+        title : "stacked-bar.answers-by-province", 
+        endpoint : "stacked-by/province",
+        filter : true, 
+        normalize : (rawData) => {
+            data.value = rawData
+        }
+    }, 
+    {
+        title : "heatmap.answers-by-age-and-gender", 
+        endpoint : "paired-map/age/gender", 
+        normalize : (rawData) => {
+            const normData = Helpers.normalizedPairedMap(rawData)
+            data.value = normData.data 
+            labels.value = normData.labels
+        }
+    }, 
+    {
+        title : "heatmap.answers-by-region-and-gender", 
+        endpoint : "paired-map/region/gender", 
+        normalize : (rawData) => {
+            const normData = Helpers.normalizedPairedMap(rawData)
+            data.value = normData.data 
+            labels.value = normData.labels      
+        }
+    },
+    {
+        title : "heatmap.answers-by-region-and-age", 
+        endpoint : "paired-map/region/age", 
+        normalize : (rawData) => {
+            const normData = Helpers.normalizedPairedMap(rawData)
+            data.value = normData.data 
+            labels.value = normData.labels
+        }
+    },
+    {
+        title : "heatmap.answers-by-province-and-age", 
+        endpoint : "paired-map/province/gender", 
+        filter : true, 
+        normalize : (rawData) => {
+            if(rawData.length == 0) {
+                data.value = null
+            } else {
+                const normData = Helpers.normalizedPairedMap(rawData)
+                data.value = normData.data 
+                labels.value = normData.labels
+            }
+        }
+    },
+    {
+        title : "heatmap.answers-by-province-and-age", 
+        endpoint : "paired-map/province/age", 
+        filter : true, 
+        normalize : (rawData) => {
+            if(rawData.length == 0) {
+                data.value = null
+            } else {
+                const normData = Helpers.normalizedPairedMap(rawData)
+                data.value = normData.data 
+                labels.value = normData.labels
+            }
+        }
+    },
+]
+
+async function onPartitionExpand(index) {
+    selectedChart.value = index - 1
+    await getData()
+}
+
+watch(() => route.params.pollId, () => {
+    pollId.value = route.params.pollId
+})
+
+async function handleSelectRegion(key) {
+    console.log("Hello!")
+    args.value.filter_key = "user.info.region"
+    args.value.filter_value = selectedRegion.value
+    await getData()
+}
 
 </script> 
 
@@ -108,13 +356,20 @@ onMounted(async () => {
                     </table> 
                 </div> 
                 <div class="results"> 
-                    <Accordion class="charts" :itemsLength="17">
+                    <Accordion 
+                        class="charts" :itemsLength="19"
+                        @onExpand="onPartitionExpand"
+                        :loading="!fetched"
+                    >
                         <!-- Total Answers Over Time -->
                         <template v-slot:partition-1-title> 
                             Total Answers Over Time (Line Graph)
                         </template> 
                         <template v-slot:partition-1-content> 
-                            Hello, 1
+                            <LineChart 
+                                width="600" 
+                                :data="data"
+                            />
                         </template> 
 
                         <!-- Answers Over Time -->
@@ -122,103 +377,172 @@ onMounted(async () => {
                             Answers Over Time (Line Graph)
                         </template> 
                         <template v-slot:partition-2-content> 
-                            Hello, 1
+                            <LineChart 
+                                width="600" 
+                                :data="data"
+                            />
+                        </template> 
+
+                        <!-- Answers Over Time -->
+                        <template v-slot:partition-3-title> 
+                            Answers Over Time - per Choice (Line Graph)
+                        </template> 
+                        <template v-slot:partition-3-content> 
+                            <LinesChart 
+                                width="600" 
+                                :data="data"
+                            />
                         </template> 
 
                         <!-- Answers by Choice (Pie Chart) -->
-                        <template v-slot:partition-3-title> 
+                        <template v-slot:partition-4-title> 
                             Answers by Choice (Pie Chart)
                         </template> 
-                        <template v-slot:partition-3-content> 
-                            Hello, 1
+                        <template v-slot:partition-4-content> 
+                            <DonutChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                            />
                         </template> 
                     
                         <!-- Answers by Choice (Bar Chart) -->
-                        <template v-slot:partition-4-title> 
+                        <template v-slot:partition-5-title> 
                             Answers by Choice (Bar Chart)
                         </template> 
-                        <template v-slot:partition-4-content> 
-                            Hello, 1
+                        <template v-slot:partition-5-content> 
+                            <HorizontalBarChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                            />
                         </template> 
 
-                        <!-- Answers by Choice (Funnel Chart) -->
-                        <template v-slot:partition-5-title> 
+                        <!-- Answers by Age (Funnel Chart) -->
+                        <template v-slot:partition-6-title> 
                             Answers by Age (Funnel Chart)
                         </template> 
-                        <template v-slot:partition-5-content> 
-                            Hello, 1
+                        <template v-slot:partition-6-content> 
+                            <FunnelChart 
+                                width="600"
+                                :data="data" 
+                                :labels="labels"
+                            />
                         </template> 
 
                         <!-- Answers by Gender (Pie Chart) -->
-                        <template v-slot:partition-6-title> 
+                        <template v-slot:partition-7-title> 
                             Answers by Gender (Pie Chart)
                         </template> 
-                        <template v-slot:partition-6-content> 
-                            Hello, 1
+                        <template v-slot:partition-7-content> 
+                            <DonutChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                            />
                         </template> 
 
                         <!-- Answers by Age (Pie Chart) -->
-                        <template v-slot:partition-7-title> 
+                        <template v-slot:partition-8-title> 
                             Answers by Age (Pie Chart)
                         </template> 
-                        <template v-slot:partition-7-content> 
-                            Hello, 1
+                        <template v-slot:partition-8-content> 
+                            <DonutChart 
+                                width="500" 
+                                :data="data"
+                                :labels="labels"
+                            />
                         </template> 
 
                         <!-- Answers by Region (Pie Chart) -->
-                        <template v-slot:partition-8-title> 
+                        <template v-slot:partition-9-title> 
                             Answers by Region (Pie Chart)
                         </template> 
-                        <template v-slot:partition-8-content> 
-                            Hello, 1
+                        <template v-slot:partition-9-content> 
+                            <DonutChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                            />
                         </template> 
 
                         <!-- Answers by Province (Pie Chart) -->
-                        <template v-slot:partition-9-title> 
+                        <template v-slot:partition-10-title> 
                             Answers by Province (Pie Chart)
                         </template> 
-                        <template v-slot:partition-9-content> 
-                            Hello, 1
-                        </template> 
-
-                        <!-- Answers by Gender (Stacked Bar Chart) -->
-                        <template v-slot:partition-10-title> 
-                            Answers by Gender (Stacked Bar Chart)
-                        </template> 
                         <template v-slot:partition-10-content> 
-                            Hello, 1
+                            <DonutChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                            />
                         </template> 
 
                         <!-- Answers by Gender (Stacked Bar Chart) -->
                         <template v-slot:partition-11-title> 
-                            Answers by Age (Stacked Bar Chart)
+                            Answers by Gender (Stacked Bar Chart)
                         </template> 
                         <template v-slot:partition-11-content> 
-                            Hello, 1
+                            <div class="chart">
+                                <HorizontalStackedBarChart 
+                                    width="600" 
+                                    :data="data"
+                                    :labels="labels"
+                                />
+                            </div>
+                        </template> 
+
+                        <!-- Answers by Age (Stacked Bar Chart) -->
+                        <template v-slot:partition-12-title> 
+                            Answers by Age (Stacked Bar Chart)
+                        </template> 
+                        <template v-slot:partition-12-content> 
+                            <HorizontalStackedBarChart 
+                                width="600" 
+                                height="600"
+                                :data="data"
+                                :labels="labels"
+                            />
                         </template> 
 
                         <!-- Answers by Region (Stacked Bar Chart) -->
-                        <template v-slot:partition-12-title> 
-                            Answers by Region (Stacked Bar Chart)
-                        </template> 
-                        <template v-slot:partition-12-content> 
-                            Hello, 1
-                        </template> 
-
-                        <!-- Answers by Province (Stacked Bar Chart) -->
                         <template v-slot:partition-13-title> 
                             Answers by Region (Stacked Bar Chart)
                         </template> 
                         <template v-slot:partition-13-content> 
-                            Hello, 1
+                            <HorizontalStackedBarChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                            />
                         </template> 
 
-                        <!-- Answers by Region (Treemap Chart) -->
+                        <!-- Answers by Province (Stacked Bar Chart) -->
                         <template v-slot:partition-14-title> 
-                            Answers by Region (Treemap Chart)
+                            Answers by Province (Stacked Bar Chart)
                         </template> 
                         <template v-slot:partition-14-content> 
-                            Hello, 1
+                            <div class="chart">
+                                <select
+                                    @change="handleSelectRegion()"
+                                    v-model="selectedRegion"
+                                >
+                                    <option 
+                                        v-for="region in Locations.regions" 
+                                        :key="region['key']"
+                                        :value="region['key']"
+                                    >
+                                        {{ region['key']  + " - " + region['long'] }}
+                                    </option>
+                                </select>
+                                <br />
+                                <HorizontalStackedBarChart 
+                                    width="600" 
+                                    height="500"
+                                    :data="data"
+                                    :labels="labels"
+                                />
+                            </div>
                         </template> 
 
                         <!-- Answers by Age & Gender (Heatmap Chart) -->
@@ -226,7 +550,12 @@ onMounted(async () => {
                             Answers by Age &amp; Gender (Heatmap Chart)
                         </template> 
                         <template v-slot:partition-15-content> 
-                            Hello, 1
+                            <HeatMapChart 
+                                width="600" 
+                                height="500"
+                                :data="data"
+                                :labels="labels"
+                            />
                         </template> 
 
                         <!-- Answers by Region & Gender (Heatmap Chart) -->
@@ -234,7 +563,12 @@ onMounted(async () => {
                             Answers by Region &amp; Gender (Heatmap Chart)
                         </template> 
                         <template v-slot:partition-16-content> 
-                            Hello, 1
+                            <HeatMapChart 
+                                width="600" 
+                                height="500"
+                                :data="data"
+                                :labels="labels"
+                            />
                         </template> 
 
                         <!-- Answers by Region & Age (Heatmap Chart) -->
@@ -242,7 +576,71 @@ onMounted(async () => {
                             Answers by Region &amp; Age (Heatmap Chart)
                         </template> 
                         <template v-slot:partition-17-content> 
-                            Hello, 1
+                            <HeatMapChart 
+                                width="600" 
+                                height="500"
+                                :data="data"
+                                :labels="labels"
+                            />
+                        </template> 
+
+
+                        <!-- Answers by Region & Gender (Heatmap Chart) -->
+                        <template v-slot:partition-18-title> 
+                            Answers by Province &amp; Gender (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-18-content> 
+                            <div class="chart">
+                                <select
+                                    @change="handleSelectRegion()"
+                                    v-model="selectedRegion"
+                                >
+                                    <option 
+                                        v-for="region in Locations.regions" 
+                                        :key="region['key']"
+                                        :value="region['key']"
+                                    >
+                                        {{ region['key']  + " - " + region['long'] }}
+                                    </option>
+                                </select>
+                                <br />
+                                <HeatMapChart 
+                                    width="600" 
+                                    :data="data"
+                                    :labels="labels"
+                                />
+                            </div>
+                        </template> 
+
+                        <!-- Answers by Region & Age (Heatmap Chart) -->
+                        <template v-slot:partition-19-title> 
+                            Answers by Province &amp; Age (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-19-content> 
+                            <div class="chart">
+                                <select
+                                    @change="handleSelectRegion()"
+                                    v-model="selectedRegion"
+                                >
+                                    <option 
+                                        v-for="region in Locations.regions" 
+                                        :key="region['key']"
+                                        :value="region['key']"
+                                    >
+                                        {{ region['key']  + " - " + region['long'] }}
+                                    </option>
+                                </select>
+                                <br />
+                                <HeatMapChart 
+                                    width="600" 
+                                    :data="data"
+                                    :labels="labels"
+                                    v-if="data"  
+                                />
+                                <div class="no-data" v-else> 
+                                    No Data 
+                                </div>
+                            </div>
                         </template> 
                     </Accordion>
                 </div> 
@@ -343,6 +741,11 @@ onMounted(async () => {
 
         .chart {
             padding: 10px 0px;
+        }
+
+        button {
+            width: 500px;
+            padding: 10px 20px;
         }
     }
 </style>

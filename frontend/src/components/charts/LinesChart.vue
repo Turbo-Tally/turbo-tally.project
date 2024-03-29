@@ -5,19 +5,14 @@ const props = defineProps([ "data", "width", "height" ])
 
 const options = ref({
     xaxis : {
-        type : "datetime"
-    },
+        type: "datetime"
+    }, 
     legend : {
-        position : "top"
+        show: true
     }
 })
 
-const series = ref([
-    {
-        name: "TOTAL", 
-        data: props.data
-    }
-])
+const series = ref(props.data)
 
 </script> 
 
@@ -34,6 +29,7 @@ const series = ref([
 </template> 
 
 <style lang="scss" scoped> 
-    .line-chart {     
+    .line-chart {
+        margin-top: 20px;
     }
 </style> 

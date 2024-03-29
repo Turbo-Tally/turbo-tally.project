@@ -45,7 +45,7 @@ def validate_poll_id(poll_id):
     return poll_id
 
 #
-# GET /analyze/<poll_id>/choices
+# GET /analysis/<poll_id>/choices
 # 
 @analysis_blueprint.route("/<poll_id>/choices", methods=["GET"]) 
 def analysis__choices(poll_id):
@@ -65,7 +65,7 @@ def analysis__choices(poll_id):
 
 
 #
-# GET /analyze/<poll_id>/answers-per-day 
+# GET /analysis/<poll_id>/answers-per-day 
 # 
 @analysis_blueprint.route("/<poll_id>/answers-per-day", methods=["GET"]) 
 def analysis__answers_per_day(poll_id): 
@@ -85,7 +85,7 @@ def analysis__answers_per_day(poll_id):
 
 
 #
-# GET /analyze/<poll_id>/answers-by-choice
+# GET /analysis/<poll_id>/answers-by-choice
 # 
 @analysis_blueprint.route("/<poll_id>/answers-by-choice", methods=["GET"]) 
 def analysis__answers_by_choice(poll_id): 
@@ -105,7 +105,7 @@ def analysis__answers_by_choice(poll_id):
 
 
 #
-# GET /analyze/<poll_id>/answers-by/<type_>
+# GET /analysis/<poll_id>/answers-by/<type_>
 # 
 @analysis_blueprint.route("/<poll_id>/answers-by/<type_>", methods=["GET"]) 
 def analysis__answers_by(poll_id, type_): 
@@ -129,12 +129,14 @@ def analysis__answers_by(poll_id, type_):
 
 
 #
-# GET /analyze/<poll_id>/stacked-by/<type_>
+# GET /analysis/<poll_id>/stacked-by/<type_>
 # 
 @analysis_blueprint.route("/<poll_id>/stacked-by/<type_>", methods=["GET"]) 
 def analysis__stacked_by(poll_id, type_): 
     # validate arguments 
     poll_id = validate_poll_id(poll_id)
+    filter_field = request.args.get("filter_field")
+    filter_value = request.args.get("filter_value")
 
     # check if poll does not exist
     if not Voting.does_poll_exist(poll_id):
@@ -147,19 +149,22 @@ def analysis__stacked_by(poll_id, type_):
         type_ = "$user__age"
     else: 
         type_ = "$user.info." + type_ 
-    results = Analyzer.stacked_by(poll_id, type_)    
+        
+    results = Analyzer.stacked_by(poll_id, type_, filter_field, filter_value)    
 
     return dumps(results)
 
 
 #
-# GET /analyze/<poll_id>/paired-map/<type_a>/<type_b>
+# GET /analysis/<poll_id>/paired-map/<type_a>/<type_b>
 # 
 @analysis_blueprint.route("/<poll_id>/paired-map/<type_a>/<type_b>", methods=["GET"]) 
 def analysis__paired_map(poll_id, type_a, type_b): 
     # validate arguments 
     poll_id = validate_poll_id(poll_id)
-
+    filter_field = request.args.get("filter_field")
+    filter_value = request.args.get("filter_value")
+    
     # check if poll does not exist
     if not Voting.does_poll_exist(poll_id):
         return { 
@@ -178,6 +183,24 @@ def analysis__paired_map(poll_id, type_a, type_b):
         type_b = "$user.info." + type_b
         
 
-    results = Analyzer.paired_map(poll_id, type_a, type_b)    
+    results = Analyzer.paired_map(poll_id, type_a, type_b, filter_field, filter_value)    
+
+    return dumps(results)
+
+#
+# GET /analysis/<poll_id>/answers-per-day/choices
+# 
+@analysis_blueprint.route("/<poll_id>/answers-per-day/choices", methods=["GET"]) 
+def analysis__answers_per_day_choices(poll_id): 
+    # validate arguments 
+    poll_id = validate_poll_id(poll_id)
+
+    # check if poll does not exist
+    if not Voting.does_poll_exist(poll_id):
+        return { 
+            "status" : "POLL_DOES_NOT_EXIST"
+        }
+
+    results = Analyzer.answers_per_day_choices(poll_id)    
 
     return dumps(results)

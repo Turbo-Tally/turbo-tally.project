@@ -23,7 +23,7 @@ RUN apt-get -y install curl
 # install node.js 
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
 RUN . $NVM_DIR/nvm.sh && \
-    nvm install $NODE_VERSION && \
+    nvm install $NODE_VER   SION && \
     nvm alias default $NODE_VERSION && \
     nvm use default && \ 
     npm install -g nodemon
