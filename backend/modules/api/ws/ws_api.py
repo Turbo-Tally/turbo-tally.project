@@ -20,7 +20,7 @@ def create_ws_api(app):
 
     @socket_io.on('connect')
     def on_connect(): 
-        pass 
+        print("A client connected...")
 
     @socket_io.on('join')
     def on_join(data): 
@@ -31,6 +31,19 @@ def create_ws_api(app):
     def on_join(data): 
         print("Leave  " + data) 
         leave_room(data)
+
+    @socket_io.on('forward') 
+    def on_forward(data): 
+        print('Forwarding ' + str(data)) 
+        key = data['key']
+
+        if key != os.getenv("APP_SECRET"): 
+            return
+
+        room = data['room'] 
+        event = data['event'] 
+        data = data['data'] 
+        socket_io.emit(event, data, to=room)
     
 
     # return socket_io instance 
