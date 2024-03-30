@@ -14,6 +14,12 @@ const options = ref({
 
 const series = ref(props.data)
 
+function updateData(data) {
+    series.value = data
+}
+
+defineExpose({ updateData });
+
 </script> 
 
 <template> 

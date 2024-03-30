@@ -119,6 +119,18 @@ setInterval(async () => {
     series.value = normData.finalAnswers
 }, 1000/30)
 
+function updateData(data) {
+    normalizeData(data)
+    series.value = normData.finalAnswers
+}
+
+function updateLabels(labels) {
+    options.value.xaxis.categories = labels
+}
+
+defineExpose({ updateData, updateLabels });
+
+
 </script> 
 
 <template> 

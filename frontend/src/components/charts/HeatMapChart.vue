@@ -1,5 +1,5 @@
 <script setup> 
-import { ref } from "vue"
+import { ref, inject } from "vue"
 
 const props = defineProps([ "data", "width", "height", "labels" ])
 
@@ -15,6 +15,16 @@ const options = ref({
 })
 
 const series = ref(props.data)
+
+function updateData(data) {
+    series.value = data
+}
+
+function updateLabels(labels) {
+    options.value.labels = labels
+}
+
+defineExpose({ updateData, updateLabels });
 
 </script> 
 

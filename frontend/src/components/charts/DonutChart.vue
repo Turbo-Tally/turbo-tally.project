@@ -14,6 +14,15 @@ const options = ref({
 
 const series = ref(props.data)
 
+function updateData(data) {
+    series.value = data
+}
+
+function updateLabels(labels) {
+    options.value.labels = labels
+}
+
+defineExpose({ updateData, updateLabels });
 
 </script> 
 

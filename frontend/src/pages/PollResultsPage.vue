@@ -11,7 +11,7 @@ import HeatMapChart from "@/components/charts/HeatMapChart.vue"
 import { Locations } from "@/utils/locations.js"
 import DefaultLayout from "../layouts/DefaultLayout.vue"
 import { Poll } from "@/utils/poll.js"
-import { ref, watch, onMounted, shallowRef, onUnmounted } from "vue"
+import { ref, watch, onMounted, shallowRef, onUnmounted, provide } from "vue"
 import { useRoute } from  "vue-router"
 import { Helpers } from "@/utils/helpers.js"
 import Modal from "@/components/Modal.vue"
@@ -35,8 +35,19 @@ const resultEndpoint = ref(null)
 const data = ref({})
 const labels = ref({})
 const args = ref({
-    filter_field : "user.info.region",
-    filter_value : "NCR"
+    filter_field : "user.info.region", 
+    filter_value : "V"
+})
+
+const activeChart = ref(null)
+
+watch(data, () => {
+    activeChart.value?.updateData(data.value)
+})
+
+watch(labels, () => {
+    if(activeChart.value?.updateLabels) 
+        activeChart.value.updateLabels(labels.value)
 })
 
 async function getInfo() {
@@ -52,11 +63,13 @@ function setEndpoint(key) {
 }
 
 
-async function getData() {
-    fetched.value = false 
+async function getData(fetcher = true) {
+    if(fetcher) fetched.value = false 
+
     await getInfo() 
     await getResults()
-    fetched.value = true
+
+    if(fetcher) fetched.value = true
 }
 
 
@@ -88,7 +101,7 @@ let shouldRefresh = false;
 setInterval(async () => {
     paused.value = false;
     if(shouldRefresh) {
-        await getData()
+        await getData(false)
         shouldRefresh = false
     }
 }, 1000)
@@ -98,7 +111,7 @@ async function update() {
         shouldRefresh = true;
         return 
     }
-    await getData();
+    await getData(false);
     paused.value = true
 }
 
@@ -345,6 +358,7 @@ async function handleSelectRegion(key) {
     args.value.filter_key = "user.info.region"
     args.value.filter_value = selectedRegion.value
     await getData()
+
 }
 
 </script> 
@@ -385,7 +399,7 @@ async function handleSelectRegion(key) {
                         </tr>
                     </table> 
                 </div> 
-                <div class="results"> 
+                <div class="results">
                     <Accordion 
                         class="charts" :itemsLength="19"
                         @onExpand="onPartitionExpand"
@@ -398,6 +412,7 @@ async function handleSelectRegion(key) {
                         <template v-slot:partition-1-content> 
                             <LineChart 
                                 width="600" 
+                                ref="activeChart"
                                 :data="data"
                             />
                         </template> 
@@ -410,6 +425,7 @@ async function handleSelectRegion(key) {
                             <LineChart 
                                 width="600" 
                                 :data="data"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -421,6 +437,7 @@ async function handleSelectRegion(key) {
                             <LinesChart 
                                 width="600" 
                                 :data="data"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -433,6 +450,7 @@ async function handleSelectRegion(key) {
                                 width="600" 
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
                     
@@ -445,6 +463,7 @@ async function handleSelectRegion(key) {
                                 width="600" 
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -457,6 +476,7 @@ async function handleSelectRegion(key) {
                                 width="600"
                                 :data="data" 
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -469,6 +489,7 @@ async function handleSelectRegion(key) {
                                 width="600" 
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -481,6 +502,7 @@ async function handleSelectRegion(key) {
                                 width="500" 
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -493,6 +515,7 @@ async function handleSelectRegion(key) {
                                 width="600" 
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -505,6 +528,7 @@ async function handleSelectRegion(key) {
                                 width="600" 
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -518,6 +542,7 @@ async function handleSelectRegion(key) {
                                     width="600" 
                                     :data="data"
                                     :labels="labels"
+                                    ref="activeChart"
                                 />
                             </div>
                         </template> 
@@ -532,6 +557,7 @@ async function handleSelectRegion(key) {
                                 height="600"
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -544,6 +570,7 @@ async function handleSelectRegion(key) {
                                 width="600" 
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -571,6 +598,7 @@ async function handleSelectRegion(key) {
                                     height="500"
                                     :data="data"
                                     :labels="labels"
+                                    ref="activeChart"
                                 />
                             </div>
                         </template> 
@@ -585,6 +613,7 @@ async function handleSelectRegion(key) {
                                 height="500"
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -598,6 +627,7 @@ async function handleSelectRegion(key) {
                                 height="500"
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -611,6 +641,7 @@ async function handleSelectRegion(key) {
                                 height="500"
                                 :data="data"
                                 :labels="labels"
+                                ref="activeChart"
                             />
                         </template> 
 
@@ -638,6 +669,7 @@ async function handleSelectRegion(key) {
                                     width="600" 
                                     :data="data"
                                     :labels="labels"
+                                    ref="activeChart"
                                 />
                             </div>
                         </template> 
@@ -666,6 +698,7 @@ async function handleSelectRegion(key) {
                                     :data="data"
                                     :labels="labels"
                                     v-if="data"  
+                                    ref="activeChart"
                                 />
                                 <div class="no-data" v-else> 
                                     No Data 

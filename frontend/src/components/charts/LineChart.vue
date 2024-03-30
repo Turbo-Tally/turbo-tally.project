@@ -19,6 +19,12 @@ const series = ref([
     }
 ])
 
+function updateData(data) {
+    series.value[0].data = data
+}
+
+defineExpose({ updateData });
+
 </script> 
 
 <template> 
