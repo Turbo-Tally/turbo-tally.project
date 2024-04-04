@@ -7,6 +7,7 @@ import os
 import random
 import socketio
 from time import sleep
+from bson.json_util import dumps
 
 from modules.repositories.users import users 
 from modules.main.voting import Voting 
@@ -46,6 +47,13 @@ for user in users:
         "room" : f"poll.{poll_id}", 
         "event" : "should-update", 
         "data" : int(poll_id)
+    })
+
+    sio.emit("forward", {
+        "key" : os.getenv("APP_SECRET"), 
+        "room" : "recent-answers",
+        "event" : "new-update", 
+        "data" : dumps(Voting.recent_answers())
     })
 
     sleep(60 / n_users)

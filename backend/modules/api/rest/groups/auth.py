@@ -306,8 +306,9 @@ def auth__user():
 # 
 @auth_blueprint.route("/log-out", methods=["GET"])
 def auth__logout(): 
-    user = request.app["user"] 
-    auth.clear_session_user(request.cookies.get("SESSION_ID"))
+    if "user" in request.app:
+        user = request.app["user"] 
+        auth.clear_session_user(request.cookies.get("SESSION_ID"))
     return {
         "status" : "LOGGED_OUT"
     }

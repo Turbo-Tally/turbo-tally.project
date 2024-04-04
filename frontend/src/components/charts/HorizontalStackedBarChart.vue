@@ -1,6 +1,6 @@
 <script setup> 
 
-import { ref } from "vue"
+import { onMounted, ref } from "vue"
 
 const props = defineProps([ "data", "width", "height" ])
 
@@ -65,13 +65,14 @@ function normalizeData() {
         }
     }
 
-    for(let answer in normData.normAnswers) {
+    for(let answer of normData.answers) {
         normData.finalAnswers.push({
             name: answer, 
             data: normData.normAnswers[answer]
         })
     }
 
+    console.log(normData)
 }
 
 normalizeData()
@@ -100,12 +101,11 @@ const options = ref({
     },
     chart : {
         stacked: true,
-        animations : {
-            disabled: false
-        }
     }, 
-    legend: {
-        show: false
+    legend: {        
+        position: 'top',
+        horizontalAlign: 'left',
+        offsetX: 40
     },
     xaxis: {
         categories: normData.labels
@@ -113,11 +113,6 @@ const options = ref({
 })
 
 const series = ref(normData.finalAnswers)
-
-setInterval(async () => {
-    await normalizeData()
-    series.value = normData.finalAnswers
-}, 1000/30)
 
 function updateData(data) {
     normalizeData(data)
@@ -130,7 +125,10 @@ function updateLabels(labels) {
 
 defineExpose({ updateData, updateLabels });
 
-
+onMounted(async () => {
+    await normalizeData()
+    series.value = normData.finalAnswers
+})
 </script> 
 
 <template> 
