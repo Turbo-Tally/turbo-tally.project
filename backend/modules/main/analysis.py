@@ -170,8 +170,8 @@ class Analyzer:
                     { "$cond": [ { "$and": [ { "$gte": ["$user__age", 4] }, { "$lte": ["$user__age", 12] } ]}, "C - Children (4-12)", ""] },
                     { "$cond": [ { "$and": [ { "$gte": ["$user__age", 13] }, { "$lte": ["$user__age", 17] } ]}, "D - Teenager (13-17)", ""] },
                     { "$cond": [ { "$and": [ { "$gte": ["$user__age", 18] }, { "$lte": ["$user__age", 30] } ]}, "E - Young Adult (18-30)", ""] },
-                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 31] }, { "$lte": ["$user__age", 45] } ]}, "F - Middle Age Adult (30-45)", ""] },
-                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 46] }, { "$lte": ["$user__age", 60] } ]}, "G - Middle Age Adult (45-50)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 31] }, { "$lte": ["$user__age", 45] } ]}, "F - Middle Age Adult A (31-45)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 46] }, { "$lte": ["$user__age", 60] } ]}, "G - Middle Age Adult B (46-60)", ""] },
                     { "$cond": [ { "$gte": [ "$user__age", 61 ] }, "Senior", ""] }
 
                 ]
