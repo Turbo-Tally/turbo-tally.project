@@ -122,3 +122,11 @@ provinces = [
   { "name": "Sulu", "region": "ARMM", "key": "SLU" },
   { "name": "Tawi-tawi", "region": "ARMM", "key": "TAW" }
 ]
+
+region_map = {} 
+for region in regions: 
+  region_map[region["key"]] = region["long"]
+
+province_map = {} 
+for province in provinces: 
+  province_map[province["key"]] = province["name"]

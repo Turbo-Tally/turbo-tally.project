@@ -14,13 +14,24 @@ const options = ref({
 
 const series = ref(props.data)
 
+function updateData(data) {
+    series.value = data
+}
+
+function updateLabels(labels) {
+    options.value.labels = labels
+}
+
+defineExpose({ updateData, updateLabels });
 
 </script> 
 
 <template> 
-    <div class="pie-chart"> 
+    <div class="donut-chart"> 
         <apexchart
-            type="pie"
+            type="donut"
+            :width="props.width"
+            :height="props.height"
             :options="options"
             :series="series"
         />  
@@ -28,7 +39,7 @@ const series = ref(props.data)
 </template> 
 
 <style lang="scss" scoped> 
-    .pie-chart {
+    .donut-chart {
         margin-top: 0px;
     }
 </style> 

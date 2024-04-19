@@ -13,6 +13,9 @@ from modules.repositories.users import users
 from datetime import datetime
 from modules.common.formats import datetime_format
 from modules.core.database import db_base
+from datetime import time
+
+from modules.api.api_server import APIServer
 
 import re
 
@@ -113,6 +116,19 @@ class Voting:
                 { "$inc" : { "meta.no_of_answers" : 1 }},
                 session=session
             )
+
+            # emit event in socket-io 
+            from modules.main.common import Common
+            
+            if Common.socket_io is not None:
+                Common.socket_io.emit(
+                    'should-update', str(poll_id), to="poll." + str(poll_id)
+                )
+
+                Common.socket_io.emit(
+                    'new-update', dumps(Voting.recent_answers()), to="recent-answers"
+                )
+
 
             return inserted_id 
 
@@ -521,3 +537,11 @@ class Voting:
         total_polls = polls.coll.count_documents({})
         average = total_answers // total_polls
         return average
+
+    def clear_votes(poll_id): 
+        answers.coll.delete_many({ "poll.$id" : poll_id })
+        polls.coll.update_one(
+            { "_id" : poll_id }, 
+            { "$set" : { "meta.no_of_answers" : 0 } }
+        )
+        return True

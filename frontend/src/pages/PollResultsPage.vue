@@ -4,14 +4,20 @@ import FunnelChart from "@/components/charts/FunnelChart.vue"
 import HorizontalBarChart from "@/components/charts/HorizontalBarChart.vue" 
 import HorizontalStackedBarChart from "@/components/charts/HorizontalStackedBarChart.vue" 
 import LineChart from "@/components/charts/LineChart.vue" 
-import PieChart from "@/components/charts/PieChart.vue"
+import DonutChart from "@/components/charts/DonutChart.vue"
+import LinesChart from "@/components/charts/LinesChart.vue"
+import HeatMapChart from "@/components/charts/HeatMapChart.vue"
 
+import { Locations } from "@/utils/locations.js"
 import DefaultLayout from "../layouts/DefaultLayout.vue"
 import { Poll } from "@/utils/poll.js"
-import { ref, watch, onMounted, shallowRef } from "vue"
+import { ref, watch, onMounted, shallowRef, onUnmounted, provide } from "vue"
 import { useRoute } from  "vue-router"
 import { Helpers } from "@/utils/helpers.js"
 import Modal from "@/components/Modal.vue"
+import Accordion from "@/components/Accordion.vue"
+
+import { joinRoom, leaveRoom, wsClient } from "@/utils/ws-client.js"
 
 
 const poll = ref({})
@@ -22,354 +28,345 @@ const modalShown = ref(false)
 const route = useRoute()
 const fetched = ref(false)
 
-const selectedChart = ref("")
+const selectedChart = ref(0)
+const selectedRegion = ref("NCR")
+const resultEndpoint = ref(null)
+
+const data = ref({})
+const labels = ref({})
+const args = ref({
+    filter_field : "user.info.region", 
+    filter_value : "V"
+})
+
+const activeChart = ref(null)
+
+watch(data, () => {
+    activeChart.value?.updateData(data.value)
+})
+
+watch(labels, () => {
+    if(activeChart.value?.updateLabels) 
+        activeChart.value.updateLabels(labels.value)
+})
 
 async function getInfo() {
     poll.value = await Poll.getInfo(route.params.pollId)
 }
 
-async function getResults() {
-    results.value = await Poll.getNormalizedResults(route.params.pollId)
+function clearEndpoints() { 
+    resultEndpoint.value = null
 }
 
-async function getData() {
-    fetched.value = false
+function setEndpoint(key) {
+    resultEndpoint.value = key 
+}
+
+
+async function getData(fetcher = true) {
+    if(fetcher) fetched.value = false 
+
     await getInfo() 
     await getResults()
-    fetched.value = true
+
+    if(fetcher) fetched.value = true
 }
 
-async function enlargeChart(name) {
-    modalShown.value = true 
-    selectedChart.value = name
-    console.log(selectedChart)
-}
 
+async function getResults() {
+    const endpoint = reports[selectedChart.value]["endpoint"]
+    const filter = reports[selectedChart.value]["filter"]
+    let filterer = {} 
+
+    if(filter) {
+        filterer = args.value
+    }
+
+    const fetchedData = 
+        (await Poll.getResults(pollId.value, endpoint, filterer)).data  
+    reports[selectedChart.value].normalize(fetchedData)
+}
 
 let chartRegistry = shallowRef(null)
+let chartData = {}
 
 watch(() => route.params.pollId, async () => {
     await getData()
 })
 
+const paused = ref(false);
+
+let shouldRefresh = false;
+
+setInterval(async () => {
+    paused.value = false;
+    if(shouldRefresh) {
+        await getData(false)
+        shouldRefresh = false
+    }
+}, 1000)
+
+async function update() {
+    if(paused.value) {
+        shouldRefresh = true;
+        return 
+    }
+    await getData(false);
+    paused.value = true
+}
+
 onMounted(async () => {
     await getData()
+    joinRoom("poll." + route.params.pollId)
+    wsClient.on("should-update", update)
+})
 
-    let chartData = {}
-    
-    chartData["total-per-day-answers.line-chart"] = {
-        data: Helpers.rekey(results.value["total_per_day_answers"], {
-            "_id" : "x", 
-            "answer_count" : "y"
-        }, {
-            "x" : (v) => new Date(v)
-        })
-    }
-    
-    chartData["per-day-answers.line-chart"] = {
-        data: Helpers.rekey(results.value["per_day_answers"], {
-            "_id" : "x", 
-            "answer_count" : "y"
-        }, {
-            "x" : (v) => new Date(v)
-        })
-    } 
+onUnmounted(async () => {
+    leaveRoom("poll." + route.params.pollId)
+    wsClient.off("should-update", update)
+})
 
-    chartData["all-answers.by-choice"] = {
-        labels: Object.keys(
-            Helpers.extractChoices(
-                results.value["all_answers"]["by_choice"]
-            )
-        ),
-        data: Object.values(
-            Helpers.extractChoices(
-                results.value["all_answers"]["by_choice"]
-            )
-        )
-    }
- 
-    chartData["all-answers.by-age"] = {
-        labels: Object.keys(
-            Helpers.extractChoices(
-                results.value["all_answers"]["by_age"]
-            )
-        ),
-        data: Object.values(
-            Helpers.extractChoices(
-                results.value["all_answers"]["by_age"]
-            )
-        )
-    }
+const pollId = ref(route.params.pollId) 
 
-    chartData["all-answers.by-province"] = {
-        labels: Object.keys(
-            Helpers.extractChoices(
-                results.value["all_answers"]["by_province"]
-            )
-        ),
-        data: Object.values(
-            Helpers.extractChoices(
-                results.value["all_answers"]["by_province"]
-            )
-        )
-    }
+const reports = [
+    { 
+        title : "line.total-answers-over-time", 
+        endpoint : "answers-per-day", 
+        normalize : (rawData) => {
+            let total = 0
 
-    chartData["all-answers.by-region"] = {
-        labels: Object.keys(
-            Helpers.extractChoices(
-                results.value["all_answers"]["by_region"]
-            )
-        ),
-        data: Object.values(
-            Helpers.extractChoices(
-                results.value["all_answers"]["by_region"]
-            )
-        )
-    }
+            for(let i = 0; i < rawData.length; i++) {
+                total += rawData[i]["count"]
+                rawData[i]["count"] = total
+            }
 
-    chartData["all-answers.by-gender"] = {
-        labels: Object.keys(
-            Helpers.extractChoices(
-                results.value["all_answers"]["by_gender"]
-            )
-        ),
-        data: Object.values(
-            Helpers.extractChoices(
-                results.value["all_answers"]["by_gender"]
-            )
-        )
-    }
+            data.value =  Helpers.rekey(rawData, {
+                "key" : "x", 
+                "count" : "y"
+            }, {
+                "x" : (v) => new Date(v)
+            })
+        }
+    }, 
+    {
+        title : "line.answers-over-time",
+        endpoint : "answers-per-day", 
+        normalize : (rawData) => {
+            data.value =  Helpers.rekey(rawData, {
+                "key" : "x", 
+                "count" : "y"
+            }, {
+                "x" : (v) => new Date(v)
+            })
+        }
+    }, 
+    {
+        title : "line.answers-per-day-choices",
+        endpoint : "answers-per-day/choices", 
+        normalize : (rawData) => {
+            const formedData = {} 
+            const total = {}
 
-    chartData["stacked.by-province"] =       
-        results.value["by_category"]["stacked_by_province"]
+            for(let i = 0; i < rawData.length; i++) {
+                let item = rawData[i] 
+                const answer = item["subkey"]
+                const date = item["key"]
+                const count = item["count"]
 
-    chartData["stacked.by-age"] =       
-        results.value["by_category"]["stacked_by_age"]
+                if(!(answer in formedData)) {
+                    formedData[answer] = []
+                    total[answer] = 0
+                }
 
-    chartData["stacked.by-region"] =       
-        results.value["by_category"]["stacked_by_region"]
+                total[answer] += count
 
-    chartData["stacked.by-gender"] =       
-        results.value["by_category"]["stacked_by_gender"]
+                formedData[answer].push({
+                    x : new Date(date), 
+                    y : total[answer]
+                })
 
-    chartRegistry.value = {
-        /** Small Charts */
-        "total-per-day-answers.line-chart:SMALL" : {
-            component: LineChart, 
-            props: {
-                width: 760,
-                height: 150,
-                ...chartData["total-per-day-answers.line-chart"]
             }
-        }, 
-        "per-day-answers.line-chart:SMALL" : {
-            component: LineChart, 
-            props: {
-                width: 760,
-                height: 150,
-                ...chartData["per-day-answers.line-chart"]
-            }
-        },
-        "all-answers.pie-chart:SMALL" : {
-            component: PieChart, 
-            props: {
-                width: 150,
-                height: 300,
-                ...chartData["all-answers.by-choice"]
-            }
-        }, 
-        "all-answers.bar-chart:SMALL" : {
-            component: HorizontalBarChart, 
-            props: {
-                width: 200,
-                height: 150,
-                ...chartData["all-answers.by-choice"]
-            }
-        }, 
-        "all-answers.funnel-chart:SMALL" : {
-            component: FunnelChart, 
-            props: {
-                width: 200,
-                height: 150,
-                ...chartData["all-answers.by-age"]
-            }
-        }, 
-        "all-answers.age.pie-chart:SMALL" : {
-            component: PieChart, 
-            props: {
-                width: 200,
-                height: 150,
-                ...chartData["all-answers.by-age"]
-            }
-        }, 
-        "all-answers.region.pie-chart:SMALL" : {
-            component: PieChart, 
-            props: {
-                width: 200,
-                height: 150,
-                ...chartData["all-answers.by-region"]
-            }
-        }, 
-        "all-answers.gender.pie-chart:SMALL" : {
-            component: PieChart, 
-            props: {
-                width: 200,
-                height: 150,
-                ...chartData["all-answers.by-gender"]
-            }
-        },
-        "all-answers.provinces.pie-chart:SMALL" : {
-            component: PieChart, 
-            props: {
-                width: 200,
-                height: 150,
-                ...chartData["all-answers.by-province"]
-            }
-        },
-        "all-answers.provinces.stacked-bar-chart:SMALL" : {
-            component: HorizontalStackedBarChart, 
-            props: {
-                width: 320,
-                height: 200,
-                data: chartData["stacked.by-province"]
-            }
-        },
-        "all-answers.age.stacked-bar-chart:SMALL" : {
-            component: HorizontalStackedBarChart, 
-            props: {
-                width: 200,
-                height: 150,
-                data: chartData["stacked.by-age"]
-            }
-        },
-        "all-answers.region.stacked-bar-chart:SMALL" : {
-            component: HorizontalStackedBarChart, 
-            props: {
-                width: 200,
-                height: 150,
-                data: chartData["stacked.by-region"]
-            }
-        },
-        "all-answers.gender.stacked-bar-chart:SMALL" : {
-            component: HorizontalStackedBarChart, 
-            props: {
-                width: 200,
-                height: 150,
-                data: chartData["stacked.by-gender"]
-            }
-        },
+
+            const normData = [] 
 
 
-        /** Small Charts */
-        "total-per-day-answers.line-chart:BIG" : {
-            component: LineChart, 
-            props: {
-                width: 730,
-                height: 150,
-                ...chartData["total-per-day-answers.line-chart"]
+            for(let key in formedData) {
+                normData.push({
+                    name: key, 
+                    data: formedData[key]
+                })
             }
-        }, 
-        "per-day-answers.line-chart:BIG" : {
-            component: LineChart, 
-            props: {
-                width: 730,
-                height: 150,
-                ...chartData["per-day-answers.line-chart"]
-            }
-        },
-        "all-answers.pie-chart:BIG" : {
-            component: PieChart, 
-            props: {
-                width: 500,
-                ...chartData["all-answers.by-choice"]
-            }
-        }, 
-        "all-answers.bar-chart:BIG" : {
-            component: HorizontalBarChart, 
-            props: {
-                width: 500,
-                ...chartData["all-answers.by-choice"]
-            }
-        }, 
-        "all-answers.funnel-chart:BIG" : {
-            component: FunnelChart, 
-            props: {
-                width: 500,
-                height: 1000,
-                ...chartData["all-answers.by-age"]
-            }
-        }, 
-        "all-answers.age.pie-chart:BIG" : {
-            component: PieChart, 
-            props: {
-                width: 500,
-                ...chartData["all-answers.by-age"]
-            }
-        }, 
-        "all-answers.region.pie-chart:BIG" : {
-            component: PieChart, 
-            props: {
-                width: 500,
-                ...chartData["all-answers.by-region"]
-            }
-        }, 
-        "all-answers.gender.pie-chart:BIG" : {
-            component: PieChart, 
-            props: {
-                width: 500,
-                ...chartData["all-answers.by-gender"]
-            }
-        },
-        "all-answers.provinces.pie-chart:BIG" : {
-            component: PieChart, 
-            props: {
-                width: 500,
-                ...chartData["all-answers.by-province"]
-            }
-        },
-        "all-answers.provinces.stacked-bar-chart:BIG" : {
-            component: HorizontalStackedBarChart, 
-            props: {
-                height: 1000,
-                data: chartData["stacked.by-province"],
-                context: "province"
-            }
-        },
-        "all-answers.age.stacked-bar-chart:BIG" : {
-            component: HorizontalStackedBarChart, 
-            props: {
-                height: 1000,
-                data: chartData["stacked.by-age"],
-                context: "age"
-            }
-        },
-        "all-answers.region.stacked-bar-chart:BIG" : {
-            component: HorizontalStackedBarChart, 
-            props: {
-                height: 1000,
-                width: 600,
-                data: chartData["stacked.by-region"],
-                context: "region"
-            }
-        },
-        "all-answers.gender.stacked-bar-chart:BIG" : {
-            component: HorizontalStackedBarChart, 
-            props: {
-                height: 1000,
-                data: chartData["stacked.by-gender"],
-                context: "gender"
+
+            console.log(normData)
+
+            data.value = normData
+        }
+    }, 
+    {
+        title : "pie.answers-by-choice", 
+        endpoint : "answers-by-choice", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "bar.answers-by-choice", 
+        endpoint : "answers-by-choice", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "funnel.answers-by-age", 
+        endpoint : "answers-by/age", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "pie.answers-by-gender",
+        endpoint : "answers-by/gender", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "pie.answers-by-age", 
+        endpoint : "answers-by/age", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }   
+    }, 
+    {
+        title : "pie.answers-by-region", 
+        endpoint : "answers-by/region", 
+        normalize : (rawData) => {
+           labels.value = Helpers.extractLabels(rawData)
+           data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "pie.answers-by-province", 
+        endpoint : "answers-by/province", 
+        normalize : (rawData) => {
+            labels.value = Helpers.extractLabels(rawData)
+            data.value = Helpers.extractCounts(rawData)
+        }
+    }, 
+    {
+        title : "stacked-bar.answers-by-gender", 
+        endpoint : "stacked-by/gender", 
+        normalize : (rawData) => {
+            data.value = rawData
+        }
+    }, 
+    {
+        title : "stacked-bar.answers-by-age",
+        endpoint : "stacked-by/age", 
+        normalize : (rawData) => {
+            data.value = rawData
+        }
+    }, 
+    {
+        title : "stacked-bar.answers-by-region", 
+        endpoint : "stacked-by/region",
+        normalize : (rawData) => {
+            data.value = rawData
+        }
+    }, 
+    {
+        title : "stacked-bar.answers-by-province", 
+        endpoint : "stacked-by/province",
+        filter : true, 
+        normalize : (rawData) => {
+            data.value = rawData
+        }
+    }, 
+    {
+        title : "heatmap.answers-by-age-and-gender", 
+        endpoint : "paired-map/age/gender", 
+        normalize : (rawData) => {
+            const normData = Helpers.normalizedPairedMap(rawData)
+            data.value = normData.data 
+            labels.value = normData.labels
+        }
+    }, 
+    {
+        title : "heatmap.answers-by-region-and-gender", 
+        endpoint : "paired-map/region/gender", 
+        normalize : (rawData) => {
+            const normData = Helpers.normalizedPairedMap(rawData)
+            data.value = normData.data 
+            labels.value = normData.labels      
+        }
+    },
+    {
+        title : "heatmap.answers-by-region-and-age", 
+        endpoint : "paired-map/region/age", 
+        normalize : (rawData) => {
+            const normData = Helpers.normalizedPairedMap(rawData)
+            data.value = normData.data 
+            labels.value = normData.labels
+        }
+    },
+    {
+        title : "heatmap.answers-by-province-and-age", 
+        endpoint : "paired-map/province/gender", 
+        filter : true, 
+        normalize : (rawData) => {
+            if(rawData.length == 0) {
+                data.value = null
+            } else {
+                const normData = Helpers.normalizedPairedMap(rawData)
+                data.value = normData.data 
+                labels.value = normData.labels
             }
         }
-    }
-   
+    },
+    {
+        title : "heatmap.answers-by-province-and-age", 
+        endpoint : "paired-map/province/age", 
+        filter : true, 
+        normalize : (rawData) => {
+            if(rawData.length == 0) {
+                data.value = null
+            } else {
+                const normData = Helpers.normalizedPairedMap(rawData)
+                data.value = normData.data 
+                labels.value = normData.labels
+            }
+        }
+    },
+]
+
+async function onPartitionExpand(index) {
+    selectedChart.value = index - 1
+    await getData()
+}
+
+watch(() => route.params.pollId, () => {
+    pollId.value = route.params.pollId
 })
+
+async function handleSelectRegion(key) {
+    console.log("Hello!")
+    args.value.filter_key = "user.info.region"
+    args.value.filter_value = selectedRegion.value
+    await getData()
+
+}
 
 </script> 
 
 <template> 
     <div class="poll-results-page"> 
         <DefaultLayout>
-            <div class="poll-results-content" v-if="fetched && chartRegistry"> 
+            <div class="poll-results-content"> 
                 <div class="title">
                     <h1>{{ poll.title }}</h1>
                 </div>
@@ -402,212 +399,315 @@ onMounted(async () => {
                         </tr>
                     </table> 
                 </div> 
-                <div class="results" v-if="fetched"> 
-                    <div class="per-day-answers" style="margin-top: 30px">
-                        <b>Per Day Answers</b>
-                    </div> 
-                    <div 
-                        class="line-chart__total-per-day chart" style="margin-top: 10px"
-                        @dblclick="enlargeChart('total-per-day-answers.line-chart')"
+                <div class="results">
+                    <Accordion 
+                        class="charts" :itemsLength="19"
+                        @onExpand="onPartitionExpand"
+                        :loading="!fetched"
                     >
-                        <component
-                            :is="chartRegistry['total-per-day-answers.line-chart:SMALL'].component"
-                            v-bind="chartRegistry['total-per-day-answers.line-chart:SMALL'].props" 
-                        />
-                    </div>
-                    <div 
-                        class="line-chart__per-day chart" style="margin-top: 10px"
-                        @dblclick="enlargeChart('per-day-answers.line-chart')"
-                    >
-                        <component
-                            :is="chartRegistry['per-day-answers.line-chart:SMALL'].component"
-                            v-bind="chartRegistry['per-day-answers.line-chart:SMALL'].props" 
-                        />
-                    </div>
+                        <!-- Total Answers Over Time -->
+                        <template v-slot:partition-1-title> 
+                            Total Answers Over Time (Line Graph)
+                        </template> 
+                        <template v-slot:partition-1-content> 
+                            <LineChart 
+                                width="600" 
+                                ref="activeChart"
+                                :data="data"
+                            />
+                        </template> 
+
+                        <!-- Answers Over Time -->
+                        <template v-slot:partition-2-title> 
+                            Answers Over Time (Line Graph)
+                        </template> 
+                        <template v-slot:partition-2-content> 
+                            <LineChart 
+                                width="600" 
+                                :data="data"
+                                ref="activeChart"
+                            />
+                        </template> 
+
+                        <!-- Answers Over Time -->
+                        <template v-slot:partition-3-title> 
+                            Answers Over Time - per Choice (Line Graph)
+                        </template> 
+                        <template v-slot:partition-3-content> 
+                            <LinesChart 
+                                width="600" 
+                                :data="data"
+                                ref="activeChart"
+                            />
+                        </template> 
+
+                        <!-- Answers by Choice (Pie Chart) -->
+                        <template v-slot:partition-4-title> 
+                            Answers by Choice (Pie Chart)
+                        </template> 
+                        <template v-slot:partition-4-content> 
+                            <DonutChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
+                            />
+                        </template> 
                     
-                    <div class="all-answers-header">
-                        <b>All Answers</b>
-                    </div> 
-                    <div class="all-answers-results">
-                        <div 
-                            class="pie-chart chart"
-                            @dblclick="enlargeChart('all-answers.pie-chart')"
-                        >
-                            <component
-                                :is="chartRegistry['all-answers.pie-chart:SMALL'].component"
-                                v-bind="chartRegistry['all-answers.pie-chart:SMALL'].props" 
+                        <!-- Answers by Choice (Bar Chart) -->
+                        <template v-slot:partition-5-title> 
+                            Answers by Choice (Bar Chart)
+                        </template> 
+                        <template v-slot:partition-5-content> 
+                            <HorizontalBarChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
                             />
-                        </div> 
-                        <div 
-                            class="bar-chart chart"
-                            @dblclick="enlargeChart('all-answers.bar-chart')"
-                        > 
-                            <component
-                                :is="chartRegistry['all-answers.bar-chart:SMALL'].component"
-                                v-bind="chartRegistry['all-answers.bar-chart:SMALL'].props" 
+                        </template> 
+
+                        <!-- Answers by Age (Funnel Chart) -->
+                        <template v-slot:partition-6-title> 
+                            Answers by Age (Funnel Chart)
+                        </template> 
+                        <template v-slot:partition-6-content> 
+                            <FunnelChart 
+                                width="600"
+                                :data="data" 
+                                :labels="labels"
+                                ref="activeChart"
                             />
-                        </div> 
-                        <div 
-                            class="funnel-chart chart"
-                            @dblclick="enlargeChart('all-answers.funnel-chart')"
-                        > 
-                            <component
-                                :is="chartRegistry['all-answers.funnel-chart:SMALL'].component"
-                                v-bind="chartRegistry['all-answers.funnel-chart:SMALL'].props" 
+                        </template> 
+
+                        <!-- Answers by Gender (Pie Chart) -->
+                        <template v-slot:partition-7-title> 
+                            Answers by Gender (Pie Chart)
+                        </template> 
+                        <template v-slot:partition-7-content> 
+                            <DonutChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
                             />
-                        </div> 
-                    </div> 
-                    <div class="categorized-results">
-                        <div class="pie-chart">
-                            <div class="header"> 
-                                By Age
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.age.pie-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.age.pie-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.age.pie-chart:SMALL'].props" 
+                        </template> 
+
+                        <!-- Answers by Age (Pie Chart) -->
+                        <template v-slot:partition-8-title> 
+                            Answers by Age (Pie Chart)
+                        </template> 
+                        <template v-slot:partition-8-content> 
+                            <DonutChart 
+                                width="500" 
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
+                            />
+                        </template> 
+
+                        <!-- Answers by Region (Pie Chart) -->
+                        <template v-slot:partition-9-title> 
+                            Answers by Region (Pie Chart)
+                        </template> 
+                        <template v-slot:partition-9-content> 
+                            <DonutChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
+                            />
+                        </template> 
+
+                        <!-- Answers by Province (Pie Chart) -->
+                        <template v-slot:partition-10-title> 
+                            Answers by Province (Pie Chart)
+                        </template> 
+                        <template v-slot:partition-10-content> 
+                            <DonutChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
+                            />
+                        </template> 
+
+                        <!-- Answers by Gender (Stacked Bar Chart) -->
+                        <template v-slot:partition-11-title> 
+                            Answers by Gender (Stacked Bar Chart)
+                        </template> 
+                        <template v-slot:partition-11-content> 
+                            <div class="chart">
+                                <HorizontalStackedBarChart 
+                                    width="600" 
+                                    :data="data"
+                                    :labels="labels"
+                                    ref="activeChart"
                                 />
                             </div>
-                        </div> 
-                        <div class="pie-chart"> 
-                            <div class="header"> 
-                                By Region
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.region.pie-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.region.pie-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.region.pie-chart:SMALL'].props" 
+                        </template> 
+
+                        <!-- Answers by Age (Stacked Bar Chart) -->
+                        <template v-slot:partition-12-title> 
+                            Answers by Age (Stacked Bar Chart)
+                        </template> 
+                        <template v-slot:partition-12-content> 
+                            <HorizontalStackedBarChart 
+                                width="600" 
+                                height="600"
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
+                            />
+                        </template> 
+
+                        <!-- Answers by Region (Stacked Bar Chart) -->
+                        <template v-slot:partition-13-title> 
+                            Answers by Region (Stacked Bar Chart)
+                        </template> 
+                        <template v-slot:partition-13-content> 
+                            <HorizontalStackedBarChart 
+                                width="600" 
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
+                            />
+                        </template> 
+
+                        <!-- Answers by Province (Stacked Bar Chart) -->
+                        <template v-slot:partition-14-title> 
+                            Answers by Province (Stacked Bar Chart)
+                        </template> 
+                        <template v-slot:partition-14-content> 
+                            <div class="chart">
+                                <select
+                                    @change="handleSelectRegion()"
+                                    v-model="selectedRegion"
+                                >
+                                    <option 
+                                        v-for="region in Locations.regions" 
+                                        :key="region['key']"
+                                        :value="region['key']"
+                                    >
+                                        {{ region['key']  + " - " + region['long'] }}
+                                    </option>
+                                </select>
+                                <br />
+                                <HorizontalStackedBarChart 
+                                    width="600" 
+                                    height="500"
+                                    :data="data"
+                                    :labels="labels"
+                                    ref="activeChart"
                                 />
                             </div>
-                        </div> 
-                        <div class="pie-chart"> 
-                            <div 
-                                class="header"
-                            > 
-                                By Gender
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.gender.pie-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.gender.pie-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.gender.pie-chart:SMALL'].props" 
+                        </template> 
+
+                        <!-- Answers by Age & Gender (Heatmap Chart) -->
+                        <template v-slot:partition-15-title> 
+                            Answers by Age &amp; Gender (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-15-content> 
+                            <HeatMapChart 
+                                width="600" 
+                                height="500"
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
+                            />
+                        </template> 
+
+                        <!-- Answers by Region & Gender (Heatmap Chart) -->
+                        <template v-slot:partition-16-title> 
+                            Answers by Region &amp; Gender (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-16-content> 
+                            <HeatMapChart 
+                                width="600" 
+                                height="500"
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
+                            />
+                        </template> 
+
+                        <!-- Answers by Region & Age (Heatmap Chart) -->
+                        <template v-slot:partition-17-title> 
+                            Answers by Region &amp; Age (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-17-content> 
+                            <HeatMapChart 
+                                width="600" 
+                                height="500"
+                                :data="data"
+                                :labels="labels"
+                                ref="activeChart"
+                            />
+                        </template> 
+
+
+                        <!-- Answers by Region & Gender (Heatmap Chart) -->
+                        <template v-slot:partition-18-title> 
+                            Answers by Province &amp; Gender (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-18-content> 
+                            <div class="chart">
+                                <select
+                                    @change="handleSelectRegion()"
+                                    v-model="selectedRegion"
+                                >
+                                    <option 
+                                        v-for="region in Locations.regions" 
+                                        :key="region['key']"
+                                        :value="region['key']"
+                                    >
+                                        {{ region['key']  + " - " + region['long'] }}
+                                    </option>
+                                </select>
+                                <br />
+                                <HeatMapChart 
+                                    width="600" 
+                                    :data="data"
+                                    :labels="labels"
+                                    ref="activeChart"
                                 />
                             </div>
-                        </div> 
-                    </div>
-                    <div class="categorized-results">
-                        <div class="stacked-bar-chart">
-                            <div class="header"> 
-                                Stacked Bar Chart (age)
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.age.stacked-bar-chart')"
-                            > 
-                                <component
-                                        :is="chartRegistry['all-answers.age.stacked-bar-chart:SMALL'].component"
-                                        v-bind="chartRegistry['all-answers.age.stacked-bar-chart:SMALL'].props"
-                                    context="age" 
+                        </template> 
+
+                        <!-- Answers by Region & Age (Heatmap Chart) -->
+                        <template v-slot:partition-19-title> 
+                            Answers by Province &amp; Age (Heatmap Chart)
+                        </template> 
+                        <template v-slot:partition-19-content> 
+                            <div class="chart">
+                                <select
+                                    @change="handleSelectRegion()"
+                                    v-model="selectedRegion"
+                                >
+                                    <option 
+                                        v-for="region in Locations.regions" 
+                                        :key="region['key']"
+                                        :value="region['key']"
+                                    >
+                                        {{ region['key']  + " - " + region['long'] }}
+                                    </option>
+                                </select>
+                                <br />
+                                <HeatMapChart 
+                                    width="600" 
+                                    :data="data"
+                                    :labels="labels"
+                                    v-if="data"  
+                                    ref="activeChart"
                                 />
+                                <div class="no-data" v-else> 
+                                    No Data 
+                                </div>
                             </div>
-                        </div> 
-                        <div class="stacked-bar-chart"> 
-                            <div class="header"> 
-                                Stacked Bar Chart (region)
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.region.stacked-bar-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.region.stacked-bar-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.region.stacked-bar-chart:SMALL'].props"
-                                    context="region" 
-                                />
-                            </div>
-                        </div> 
-                        <div class="stacked-bar-chart"> 
-                            <div 
-                                class="header"
-                            > 
-                                Stacked Bar Chart (gender)
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.gender.stacked-bar-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.gender.stacked-bar-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.gender.stacked-bar-chart:SMALL'].props"
-                                    context="gender" 
-                                />
-                            </div>
-                        </div> 
-                    </div>
-                    <div class="categorized-results">
-                        <div class="pie-chart">
-                            <div class="header"> 
-                                Pie Chart (province)
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.provinces.pie-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.provinces.pie-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.provinces.pie-chart:SMALL'].props" 
-                                />
-                            </div>
-                        </div> 
-                        <div class="bar-chart"> 
-                            <div class="header"> 
-                                Stacked Bar Chart (province)
-                            </div> 
-                            <div 
-                                class="chart"
-                                @dblclick="enlargeChart('all-answers.provinces.stacked-bar-chart')"
-                            > 
-                                <component
-                                    :is="chartRegistry['all-answers.provinces.stacked-bar-chart:SMALL'].component"
-                                    v-bind="chartRegistry['all-answers.provinces.stacked-bar-chart:SMALL'].props" 
-                                    context="province"
-                                />
-                            </div>
-                        </div> 
-                    </div>
-                  
-                </div>
-            </div>   
-            <div class="loading" v-else> 
-                <div class="inner">
-                    <div class="loading-icon">
-                        <img src="@/assets/loading.png" />
-                    </div>
-                    <div class="results"> 
-                        <b>Loading Results</b> <br /> 
-                        Loading Data &amp; Generating some charts...
-                    </div> 
-                </div>
-            </div>  
-            <Modal 
-                v-if="chartRegistry && modalShown && selectedChart" 
-                @close="modalShown = false"
-                :title="selectedChart"
-                :width="chartRegistry[selectedChart + ':BIG'].props.width"
-            >   
-                <component 
-                    :is="chartRegistry[selectedChart  + ':BIG'].component"
-                    v-bind="chartRegistry[selectedChart + ':BIG'].props"
-                /> 
-            </Modal> 
+                        </template> 
+                    </Accordion>
+                </div> 
+            </div>
         </DefaultLayout>
     </div> 
 </template> 
@@ -652,98 +752,8 @@ onMounted(async () => {
             }
 
             .results {
-                .line-chart__total-per-day {
-                    width: 100%;
-                    height: 150px;
-                    margin-top: 30px;
-                    border: 2px solid black;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                } 
-
-                .line-chart__per-day {
-                    width: 100%;
-                    height: 150px;
-                    margin-top: 30px;
-                    border: 2px solid black;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                } 
-
-                .all-answers-header {
-                    margin-top: 50px;
-                }
-
-                .all-answers-results {
-                    display: flex;
-                    gap: 10px; 
-
-                    > div {
-                        margin-top: 15px;
-                        flex: 1; 
-                        border: 2px solid black;
-                        height: 200px;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center; 
-                        align-items: center; 
-                    }
-                }
-
-
-                .categorized-results {
-                    display: flex;
-                    gap: 10px; 
+                .charts {
                     margin-top: 20px;
-
-                    > div {
-                        margin-top: 15px;
-                        flex: 1; 
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center; 
-                        align-items: center; 
-
-                        > .header {
-                            text-align: left;
-                            width: 100%;
-                            margin-bottom: 10px;
-                            font-weight: bold;
-                        }
-
-                        > .chart {
-                            border: 2px solid black;
-                            height: 200px;
-                            width: 100%;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            text-align: center;
-                        }
-                    }
-                }
-
-                .by-province {
-                    display: flex;
-                    gap: 10px; 
-                    margin-top: 20px;
-
-                    > .content {
-                        margin-top: 30px;
-                        display: flex;
-                        flex-direction: row;
-                        justify-content: center; 
-                        align-items: center; 
-                        gap: 5px;
-                        width: 245px;
-                        gap: 5px;
-                        margin-left: 5px;
-                       
-                    }
-
-                    
                 }
             }
 
@@ -794,6 +804,11 @@ onMounted(async () => {
 
         .chart {
             padding: 10px 0px;
+        }
+
+        button {
+            width: 500px;
+            padding: 10px 20px;
         }
     }
 </style>

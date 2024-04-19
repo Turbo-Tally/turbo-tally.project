@@ -25,7 +25,8 @@ async function skip() {
     const response = await httpClient.get("/voting/random-poll") 
     const data = response.data 
     const pollId = data["_id"] 
-    router.push("/poll/" + pollId + "/answer")
+    query.value = ""
+    window.location = "/#/poll/" + pollId + "/answer"
 }
 
 async function fetchPoll() {

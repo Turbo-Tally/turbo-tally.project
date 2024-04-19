@@ -17,6 +17,16 @@ const options = ref({
 
 const series = ref([{ data: props.data }])
 
+function updateData(data) {
+    series.value[0].data = data
+}
+
+function updateLabels(labels) {
+    options.value.xaxis.categories = labels
+}
+
+defineExpose({ updateData, updateLabels });
+
 </script> 
 
 <template> 

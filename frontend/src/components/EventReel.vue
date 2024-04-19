@@ -1,9 +1,10 @@
 <script setup> 
 
-import { computed, ref } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { Helpers } from "@/utils/helpers.js"
-
 const props = defineProps([ "content" ])
+
+const content = ref(props.contents)
 
 const currentContent = computed(() => {
     return props.content

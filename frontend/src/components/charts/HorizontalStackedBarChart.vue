@@ -1,10 +1,10 @@
 <script setup> 
 
-import { ref } from "vue"
+import { onMounted, ref } from "vue"
 
-const props = defineProps([ "data", "width", "height", "context" ])
+const props = defineProps([ "data", "width", "height" ])
 
-const normData = {
+let normData = {
     labels: new Set(), 
     answers: new Set(),
     groupedAnswers : {}, 
@@ -13,11 +13,20 @@ const normData = {
 } 
 
 function normalizeData() {
+    normData = {
+        labels: new Set(), 
+        answers: new Set(),
+        groupedAnswers : {}, 
+        normAnswers : [],
+        finalAnswers : []
+    } 
+
+    console.log("Normalizing data...")
     const data = props.data 
 
     for(let item of data) {
-        const label = item._id[props.context] 
-        const answer = item._id.answer  
+        const label = item.key 
+        const answer = item.subkey
 
         normData.labels.add(label)
         normData.answers.add(answer)
@@ -27,15 +36,15 @@ function normalizeData() {
     normData.answers = Array.from(normData.answers)
 
     for(let item of data) {
-        const province = item._id[props.context] 
-        const answer = item._id.answer  
-        const answer_count = item.answer_count
+        const key = item.key
+        const answer = item.subkey
+        const answer_count = item.count
 
         if(!(answer in normData.groupedAnswers)) {
             normData.groupedAnswers[answer] = {}
         }
 
-        normData.groupedAnswers[answer][province] = answer_count
+        normData.groupedAnswers[answer][key] = answer_count
     }
 
     for(let answer in normData.groupedAnswers) {
@@ -56,14 +65,13 @@ function normalizeData() {
         }
     }
 
-    for(let answer in normData.normAnswers) {
+    for(let answer of normData.answers) {
         normData.finalAnswers.push({
             name: answer, 
             data: normData.normAnswers[answer]
         })
     }
-    
-    console.log(props.data)
+
     console.log(normData)
 }
 
@@ -94,17 +102,33 @@ const options = ref({
     chart : {
         stacked: true,
     }, 
-    legend: {
-        show: false
+    legend: {        
+        position: 'top',
+        horizontalAlign: 'left',
+        offsetX: 40
     },
     xaxis: {
         categories: normData.labels
     }
 })
 
-
 const series = ref(normData.finalAnswers)
 
+function updateData(data) {
+    normalizeData(data)
+    series.value = normData.finalAnswers
+}
+
+function updateLabels(labels) {
+    options.value.xaxis.categories = labels
+}
+
+defineExpose({ updateData, updateLabels });
+
+onMounted(async () => {
+    await normalizeData()
+    series.value = normData.finalAnswers
+})
 </script> 
 
 <template> 

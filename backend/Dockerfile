@@ -23,13 +23,13 @@ RUN apt-get -y install curl
 # install node.js 
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
 RUN . $NVM_DIR/nvm.sh && \
-    nvm install $NODE_VERSION && \
+    nvm install $NODE_VER   SION && \
     nvm alias default $NODE_VERSION && \
     nvm use default && \ 
     npm install -g nodemon
 
 # activate virtual environment
-RUN . /home/turbo_tally.backend/env/bin/activate
+# RUN . /home/turbo_tally.backend/env/bin/activate  
 
 # export paths
 ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules

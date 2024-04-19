@@ -8,8 +8,13 @@ from modules.repositories.users import users
 from modules.repositories.polls import polls 
 from modules.repositories.choices import choices 
 
+from modules.common.helpers import revalue
+from modules.common.locations import region_map, province_map
+
 from datetime import datetime
 from bson.json_util import dumps
+
+
 
 class Analyzer: 
     compute_age = {
@@ -40,14 +45,25 @@ class Analyzer:
         ]
     }
 
-    def denormalized_answer_list(poll_id, aside_query = []):
+    def revalue_generic(context, category, key = "key"): 
+        if category == "$user.info.gender": 
+            revalue(context, key, {
+                "M" : "MALE",
+                "F" : "FEMALE"
+            })
+        elif category == "$user.info.region": 
+            revalue(context, key, region_map)
+        elif category == "$user.info.province": 
+            revalue(context, key, province_map)
 
+
+    def dal(poll_id, aside_query = []):
         base_projection = {
             "poll" : 1, 
             "user" : 1,
             "answered_at" : 1,
             "answer" : 1, 
-            "answer_count" : 1
+            "count" : 1
         }
 
         base_query = [
@@ -94,289 +110,249 @@ class Analyzer:
 
         return answers.coll.aggregate(expanded_query)
 
-        
-    def analyze_poll(poll_id):
-        # get choices of polls 
-        choice_list  = \
-            list(map(lambda e: e["answer"], choices.coll.find({ "poll.$id" : poll_id})))
-
-        # get answers of polls
-        answers_per_day = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$group" : {
-                    "_id" : "$answer_date", 
-                    "answer_count" : { "$sum" : 1 }
-                }
-            }, 
-            {
-                "$project" : {
-                    "_id" : 1, 
-                    "answer_count" : 1
-                }
-            }
-        ]))
-        
-
-        answers_per_day.sort(key=lambda e: e["_id"])
-
-        #
-        # BAR CHARTS AND FUNNEL CHARTS
-        # 
-
-        # get answers by choice 
-        answers_by_choice = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$group" : {
-                    "_id" : "$answer", 
-                    "answer_count" : { "$sum" : 1 }
-                }
-            }
-        ]))
-
-        # get answers by age 
-        answers_by_age = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$group" : {
-                    "_id" : "$user__age", 
-                    "answer_count" : { "$sum" : 1 }
-                }
-            }
-        ]))
-
-        answers_by_age.sort(key=lambda e: e["_id"])
-
-        # 
-        # STACKED CHARTS
-        # 
-
-        # get answers by age in stacked format
-        stacked_by_age = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$group" : {
-                    "_id" : {
-                        "age" : "$user__age", 
-                        "answer" : "$answer"
-                    }, 
-                    "answer_count" : { "$sum" : 1 }
-                }
-            }
-        ]))
-
-        stacked_by_age.sort(key=lambda e: 
-            (e["_id"]["age"], e["_id"]["answer"])
-        )
-
-        # get answers by gender in stacked format
-        stacked_by_gender = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$group" : {
-                    "_id" : {
-                        "gender" : "$user.info.gender", 
-                        "answer" : "$answer"
-                    }, 
-                    "answer_count" : { "$sum" : 1 }
-                }
-            }
-        ]))
-
-        stacked_by_gender.sort(key=lambda e: 
-            (e["_id"]["gender"], e["_id"]["answer"])
-        )
-
-        # get answers by gender in stacked format
-        stacked_by_region = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$group" : {
-                    "_id" : {
-                        "region" : "$user.info.region", 
-                        "answer" : "$answer"
-                    }, 
-                    "answer_count" : { "$sum" : 1 }
-                }
-            }
-        ]))
-
-        stacked_by_region.sort(key=lambda e: 
-            (e["_id"]["region"], e["_id"]["answer"])
-        )
-
-        #
-        # BY REGION 
-        #
-        
-        # get total answers by region
-        answers_by_region = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$group" : {
-                    "_id" : "$user.info.region", 
-                    "answer_count" : { "$sum" :  1 }
-                }
-            }
-        ]))
-
-        answers_by_region.sort(key=lambda e: e["_id"])
-
-        #
-        # BY GENDER 
-        #
-        
-        # get total answers by province
-        answers_by_gender = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$group" : {
-                    "_id" : "$user.info.gender", 
-                    "answer_count" : { "$sum" :  1 }
-                }
-            }
-        ]))
-
-        answers_by_gender.sort(key=lambda e: e["_id"])
-
-        #
-        # BY PROVINCE 
-        #
-        
-        # get total answers by province
-        answers_by_province = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$group" : {
-                    "_id" : "$user.info.province", 
-                    "answer_count" : { "$sum" :  1 }
-                }
-            }
-        ]))
-
-        answers_by_province.sort(key=lambda e: e["_id"])
-
-        # get stacked answers by province 
-        stacked_by_province = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$group" : {
-                    "_id" : {
-                        "province" : "$user.info.province", 
-                        "answer" : "$answer"
-                    }, 
-                    "answer_count" : { "$sum" : 1 }
-                }
-            }
-        ]))
-
-        stacked_by_province.sort(key=lambda e: 
-            (e["_id"]["province"], e["_id"]["answer"])
-        )
-        
-
-        return { 
-            "choice_list" : choice_list,
-            "per_day_answers" : answers_per_day, 
-            "all_answers" : {
-                "by_choice" : answers_by_choice, 
-                "by_age" : answers_by_age, 
-                "by_province" : answers_by_province,
-                "by_region" : answers_by_region, 
-                "by_gender" : answers_by_gender
-            },
-            "by_category" : {
-                "stacked_by_age" : stacked_by_age,
-                "stacked_by_gender" : stacked_by_gender,
-                "stacked_by_region" : stacked_by_region, 
-                "stacked_by_province" : stacked_by_province
-            }
-        }
-
-    def analyze_poll_province(poll_id, province_id): 
-        # get choices of polls 
-        choice_list  = \
+    def choices(poll_id):
+        choice_list = \
             list(
-                map(lambda e: e["answer"], 
-                choices.coll.find({ "poll.$id" : poll_id}))
-            )
+                map(
+                    lambda e: e["answer"], 
+                    choices.coll.find({ "poll.$id" : poll_id}))
+                )
+        return choice_list
 
-        # get answers by day 
-        answers_per_day = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$match" : {
-                    "user.info.province" : province_id
-                }
-            },
+    def answers_per_day(poll_id): 
+        answers_per_day = list(Analyzer.dal(poll_id, [
             {
                 "$group" : {
                     "_id" : "$answer_date", 
-                    "answer_count" : { "$sum" : 1 }
+                    "count" : { "$sum" : 1 }
                 }
             }, 
             {
                 "$project" : {
-                    "_id" : 1, 
-                    "answer_count" : 1
+                    "_id" : 0, 
+                    "key" : "$_id",
+                    "count" : 1
                 }
             }
         ]))
 
-        answers_per_day.sort(key=lambda e: e["_id"])
+        answers_per_day.sort(key=lambda e: e["key"])
 
-        # get answers by choice
-        answers_by_choice = list(Analyzer.denormalized_answer_list(poll_id, [
-           {
-                "$match" : {
-                    "user.info.province" : province_id
-                }
-            },
+        return answers_per_day
+
+    def answers_by_choice(poll_id): 
+        answers_by_choice = list(Analyzer.dal(poll_id, [
             {
                 "$group" : {
                     "_id" : "$answer", 
-                    "answer_count" : { "$sum" : 1 }
+                    "count" : { "$sum" : 1 }
                 }
-            }
-        ])) 
-
-        answers_by_choice.sort(key=lambda e: e["_id"])
-
-        # get answers stacked by age
-        answers_by_age = list(Analyzer.denormalized_answer_list(poll_id, [
+            },
             {
-                "$match" : {
-                    "user.info.province" : province_id
-                }
-            },   
-            {
-                "$group" : {
-                    "_id" : {
-                        "age" : "$user__age", 
-                        "answer" : "$answer"
-                    }, 
-                    "answer_count" : { "$sum" : 1 }
+                "$project" : {
+                    "_id" : 0, 
+                    "key" : "$_id",
+                    "count" : 1
                 }
             }
         ]))
 
-        answers_by_age.sort(key=lambda e: (e["_id"]["age"], e["_id"]["answer"]))
+        answers_by_choice.sort(key=lambda e: e["key"])
+        
+        return answers_by_choice 
 
-        # get answers stacked by gender
-        answers_by_gender = list(Analyzer.denormalized_answer_list(poll_id, [
-            {
-                "$match" : {
-                    "user.info.province" : province_id
-                }
-            },   
+    def answers_by(poll_id, category):
+        if category == "$user__age": 
+           category = {
+                "$concat": [
+                    { "$cond": [ { "$lte": [ "$user__age", 0 ] }, "A - Infants (0)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte":  ["$user__age", 1 ] }, { "$lte": ["$user__age", 3] } ]}, "B - Toddlers (1-3)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 4] }, { "$lte": ["$user__age", 12] } ]}, "C - Children (4-12)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 13] }, { "$lte": ["$user__age", 17] } ]}, "D - Teenager (13-17)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 18] }, { "$lte": ["$user__age", 30] } ]}, "E - Young Adult (18-30)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 31] }, { "$lte": ["$user__age", 45] } ]}, "F - Middle Age Adult A (31-45)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 46] }, { "$lte": ["$user__age", 60] } ]}, "G - Middle Age Adult B (46-60)", ""] },
+                    { "$cond": [ { "$gte": [ "$user__age", 61 ] }, "Senior", ""] }
+                ]
+           }
+
+        answers_by = list(Analyzer.dal(poll_id, [
             {
                 "$group" : {
-                    "_id" : {
-                        "gender" : "$user.info.gender", 
-                        "answer" : "$answer"
-                    }, 
-                    "answer_count" : { "$sum" : 1 }
+                    "_id" : category, 
+                    "count" : { "$sum" :  1 }
+                }
+            },
+            {
+                "$project" : {
+                    "_id" : 0,
+                    "key" : "$_id", 
+                    "count" : 1
                 }
             }
         ]))
 
-        answers_by_gender.sort(key=lambda e: (e["_id"]["gender"], e["_id"]["answer"]))
+        answers_by.sort(key=lambda e: e["key"])
+
+        Analyzer.revalue_generic(answers_by, category)
+
+        return answers_by
 
 
-        return { 
-            "choice_list" : choice_list, 
-            "per_day_answers" : answers_per_day, 
-            "answers_by_choice" : answers_by_choice, 
-            "stacked_by_age" : answers_by_age, 
-            "stacked_by_gender" : answers_by_gender
+    def stacked_by(poll_id, category, filter_field = None, filter_value = None): 
+        match = {
+            "$match" : {}
         }
+        
+        if filter_field: 
+            match = {
+                "$match" : {
+                    filter_field : filter_value
+                }
+            }
+
+        if category == "$user__age": 
+            category = {
+                "$concat": [
+                    { "$cond": [ { "$lte": [ "$user__age", 0 ] }, "A - Infants (0)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte":  ["$user__age", 1 ] }, { "$lte": ["$user__age", 3] } ]}, "B - Toddlers (1-3)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 4] }, { "$lte": ["$user__age", 12] } ]}, "C - Children (4-12)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 13] }, { "$lte": ["$user__age", 17] } ]}, "D - Teenager (13-17)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 18] }, { "$lte": ["$user__age", 30] } ]}, "E - Young Adult (18-30)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 31] }, { "$lte": ["$user__age", 45] } ]}, "F - Middle Age Adult (30-45)", ""] },
+                    { "$cond": [ { "$and": [ { "$gte": ["$user__age", 46] }, { "$lte": ["$user__age", 60] } ]}, "G - Middle Age Adult (45-50)", ""] },
+                    { "$cond": [ { "$gte": [ "$user__age", 61 ] }, "Senior", ""] }
+
+                ]
+            }
+
+        stacked_by = list(Analyzer.dal(poll_id, [
+            match,
+            {
+                "$group" : {
+                    "_id" : {
+                        "key" : category, 
+                        "answer" : "$answer"
+                    }, 
+                    "count" : { "$sum" : 1 }
+                }
+            }, 
+            { 
+                "$project" : {
+                    "_id" : 0,
+                    "key"   : "$_id.key", 
+                    "subkey" : "$_id.answer", 
+                    "count" : 1
+                }
+            }
+        ]))
+
+        stacked_by.sort(key=lambda e: 
+            (e["key"], e["subkey"])
+        )
+
+        Analyzer.revalue_generic(stacked_by, category)
+
+        return stacked_by
+
+    def paired_map(poll_id, category_a, category_b, filter_field, filter_value): 
+
+        if category_a == "$user__age": 
+            category_a = {
+                    "$concat": [
+                        { "$cond": [ { "$lte": [ "$user__age", 0 ] }, "A - Infants (0)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte":  ["$user__age", 1 ] }, { "$lte": ["$user__age", 3] } ]}, "B - Toddlers (1-3)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte": ["$user__age", 4] }, { "$lte": ["$user__age", 12] } ]}, "C - Children (4-12)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte": ["$user__age", 13] }, { "$lte": ["$user__age", 17] } ]}, "D - Teenager (13-17)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte": ["$user__age", 18] }, { "$lte": ["$user__age", 30] } ]}, "E - Young Adult (18-30)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte": ["$user__age", 31] }, { "$lte": ["$user__age", 45] } ]}, "F - Middle Age Adult (30-45)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte": ["$user__age", 46] }, { "$lte": ["$user__age", 60] } ]}, "G - Middle Age Adult (45-50)", ""] },
+                        { "$cond": [ { "$gte": [ "$user__age", 61 ] }, "Senior", ""] }
+
+                    ]
+            }
+        
+        if category_b == "$user__age": 
+            category_b = {
+                    "$concat": [
+                        { "$cond": [ { "$lte": [ "$user__age", 0 ] }, "A - Infants (0)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte":  ["$user__age", 1 ] }, { "$lte": ["$user__age", 3] } ]}, "B - Toddlers (1-3)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte": ["$user__age", 4] }, { "$lte": ["$user__age", 12] } ]}, "C - Children (4-12)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte": ["$user__age", 13] }, { "$lte": ["$user__age", 17] } ]}, "D - Teenager (13-17)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte": ["$user__age", 18] }, { "$lte": ["$user__age", 30] } ]}, "E - Young Adult (18-30)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte": ["$user__age", 31] }, { "$lte": ["$user__age", 45] } ]}, "F - Middle Age Adult (30-45)", ""] },
+                        { "$cond": [ { "$and": [ { "$gte": ["$user__age", 46] }, { "$lte": ["$user__age", 60] } ]}, "G - Middle Age Adult (45-50)", ""] },
+                        { "$cond": [ { "$gte": [ "$user__age", 61 ] }, "Senior", ""] }
+
+                    ]
+            }
+
+
+        match = {
+            "$match" : {}
+        }
+
+        if filter_field: 
+            match = {
+                "$match" : {
+                    filter_field : filter_value
+                }
+            }
+
+        paired_map = list(Analyzer.dal(poll_id, [
+            match,
+            {
+                "$group" : {
+                    "_id" : {
+                        "key_a" : category_a, 
+                        "key_b" : category_b
+                    }, 
+                    "count" : { "$sum" : 1 }
+                }
+            }, 
+            { 
+                "$project" : {
+                    "_id" : 0,
+                    "key_a"   : "$_id.key_a", 
+                    "key_b"   : "$_id.key_b", 
+                    "count" : 1
+                }
+            }
+        ]))
+
+        paired_map.sort(key=lambda e: 
+            (e["key_a"], e["key_b"])
+        )
+
+        Analyzer.revalue_generic(paired_map, category_a, "key_a")
+        Analyzer.revalue_generic(paired_map, category_b, "key_b")
+
+        return paired_map
+
+    
+    def answers_per_day_choices(poll_id):
+        answers_per_day_choices = list(Analyzer.dal(poll_id, [
+            {
+                "$group" : {
+                    "_id" : {
+                        "key" : "$answer_date", 
+                        "answer" : "$answer"
+                    }, 
+                    "count" : { "$sum" : 1 }
+                }
+            }, 
+            { 
+                "$project" : {
+                    "_id" : 0,
+                    "key"   : "$_id.key", 
+                    "subkey" : "$_id.answer", 
+                    "count" : 1
+                }
+            }
+        ]))
+
+        answers_per_day_choices.sort(key=lambda e: 
+            (e["subkey"], e["key"])
+        )
+
+        return answers_per_day_choices

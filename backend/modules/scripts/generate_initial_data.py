@@ -168,7 +168,7 @@ def generate_answers():
 
     auto_increments.coll.update_one(
         { "_id" : "answers "},
-        { "counter" : len(answers_list) + 1 }
+        { "$set" : { "counter" : len(answers_list) + 1 } }
     )
 
     answers.coll.insert_many(answers_list)
